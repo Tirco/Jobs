@@ -111,24 +111,36 @@ public class BlockProtectionManager {
     }
 
     public BlockProtection remove(Block block) {
-	return remove(block.getLocation());
+    	return remove(block.getLocation());
+    }
+    /**
+     * Removed the BlockProtection on a specified location
+     * @param loc	The location of the BlockProtection
+     * @param hard	Directly removes the BlockProtection out of the List
+     * @return The BlockProtection
+     */
+    public BlockProtection remove(Location loc, boolean hard) {
+    	HashMap<String, HashMap<String, HashMap<String, BlockProtection>>> world = map.get(loc.getWorld());
+    	if (world == null)
+    		return null;
+    	HashMap<String, HashMap<String, BlockProtection>> region = world.get(locToRegion(loc));
+    	if (region == null)
+    		return null;
+    	HashMap<String, BlockProtection> chunk = region.get(locToChunk(loc));
+    	if (chunk == null)
+    		return null;
+    	String v = loc.getBlockX() + ":" + loc.getBlockY() + ":" + loc.getBlockZ();
+    	BlockProtection bp = chunk.get(v);
+    		if (bp != null)
+    			bp.setAction(DBAction.DELETE);
+    	//Force it!
+    	if(hard)
+    		chunk.remove(v);
+    	return bp;
     }
 
     public BlockProtection remove(Location loc) {
-	HashMap<String, HashMap<String, HashMap<String, BlockProtection>>> world = map.get(loc.getWorld());
-	if (world == null)
-	    return null;
-	HashMap<String, HashMap<String, BlockProtection>> region = world.get(locToRegion(loc));
-	if (region == null)
-	    return null;
-	HashMap<String, BlockProtection> chunk = region.get(locToChunk(loc));
-	if (chunk == null)
-	    return null;
-	String v = loc.getBlockX() + ":" + loc.getBlockY() + ":" + loc.getBlockZ();
-	BlockProtection bp = chunk.get(v);
-	if (bp != null)
-	    bp.setAction(DBAction.DELETE);
-	return bp;
+    	return remove(loc, false);
     }
 
     public Long getTime(Block block) {
@@ -174,4 +186,6 @@ public class BlockProtectionManager {
     public boolean isInBp(Block block) {
 	return Jobs.getRestrictedBlockManager().restrictedBlocksTimer.containsKey(CMIMaterial.get(block));
     }
+
+	
 }

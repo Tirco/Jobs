@@ -86,7 +86,6 @@ public class GeneralConfigManager {
     public float maxPaymentCurveFactor;
 
     private boolean FurnacesReassign, BrewingStandsReassign, useTnTFinder = false, ShowNewVersion;
-
     public boolean useBlockProtection, enableSchedule, PayForRenaming, PayForEnchantingOnAnvil, PayForEachCraft, SignsEnabled,
 	SignsColorizeJobName, ShowToplistInScoreboard, useGlobalTimer, useSilkTouchProtection, UseCustomNames,
 	PreventSlimeSplit, PreventMagmaCubeSplit, PreventHopperFillUps, PreventBrewingStandFillUps,
@@ -103,7 +102,7 @@ public class GeneralConfigManager {
 	BossBarEnabled = false, BossBarShowOnEachAction = false, BossBarsMessageByDefault = false, ExploreCompact, DBCleaningJobsUse, DBCleaningUsersUse,
 	DisabledWorldsUse, UseAsWhiteListWorldList, PaymentMethodsMoney, PaymentMethodsPoints, PaymentMethodsExp, MythicMobsEnabled,
 	LoggingUse, payForCombiningItems, BlastFurnacesReassign = false, SmokerReassign = false, payForStackedEntities,
-	payForEachVTradeItem, titleMessageMaxLevelReached, allowEnchantingBoostedItems;
+	payForEachVTradeItem, titleMessageMaxLevelReached, allowEnchantingBoostedItems, allowBreakPaymentForOreGenerators;
 
     public ItemStack guiBackButton, guiNextButton, guiFiller;
 
@@ -775,8 +774,11 @@ public class GeneralConfigManager {
 	BlockProtectionDays = BlockProtectionDays > 14 ? 14 : BlockProtectionDays;
 
 	/*c.addComment("ExploitProtections.General.AllowBreakPaymentForOreGenerators", "It allows you to pay for ore generator plugins continuously"
+	+ " once you have broken the block in one place.");
+allowBreakPaymentForOreGenerators = c.get("ExploitProtections.General.AllowBreakPaymentForOreGenerators", false);*/
+	c.addComment("ExploitProtections.General.AllowBreakPaymentForOreGenerators", "It allows you to pay for ore generator plugins continuously"
 			+ " once you have broken the block in one place.");
-	allowBreakPaymentForOreGenerators = c.get("ExploitProtections.General.AllowBreakPaymentForOreGenerators", false);*/
+	allowBreakPaymentForOreGenerators = c.get("ExploitProtections.General.AllowBreakPaymentForOreGenerators", false);
 
 	c.addComment("ExploitProtections.General.GlobalBlockTimer", "All blocks will be protected X sec after player places it on ground.");
 	useGlobalTimer = c.get("ExploitProtections.General.GlobalBlockTimer.use", true);

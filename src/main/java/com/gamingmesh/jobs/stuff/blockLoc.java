@@ -13,7 +13,7 @@ public class blockLoc {
     private World w;
 
     public blockLoc(String loc) {
-	this.fromString(loc);
+	fromString(loc);
     }
 
     public blockLoc(Location loc) {
@@ -53,11 +53,18 @@ public class blockLoc {
 	if (!loc.contains(":"))
 	    return false;
 	String[] split = loc.split(":");
+	if (split.length == 0) {
+	    return false;
+	}
 
 	World w = Bukkit.getWorld(split[0]);
 	if (w == null)
 	    return false;
 	this.w = w;
+
+	if (split.length < 4) {
+	    return false;
+	}
 
 	try {
 	    x = Integer.parseInt(split[1]);
@@ -70,17 +77,14 @@ public class blockLoc {
     }
 
     public Block getBlock() {
-	Location loc = this.getLocation();
-
-	if (loc == null)
-	    return null;
-
-	return loc.getBlock();
+	Location loc = getLocation();
+	return loc == null ? null : loc.getBlock();
     }
 
     public Location getLocation() {
-	if (worldName == null && this.w == null)
+	if (worldName == null && w == null)
 	    return null;
+
 	World w = this.w == null ? Bukkit.getWorld(worldName) : this.w;
 	if (w == null)
 	    return null;

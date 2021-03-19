@@ -4,14 +4,12 @@ import org.bukkit.command.CommandSender;
 
 import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.commands.Cmd;
-import com.gamingmesh.jobs.commands.JobCommand;
 import com.gamingmesh.jobs.container.CurrencyType;
 import com.gamingmesh.jobs.container.Job;
 
 public class expboost implements Cmd {
 
 	@Override
-	@JobCommand(2300)
 	public boolean perform(Jobs plugin, CommandSender sender, String[] args) {
 		if (args.length > 3 || args.length <= 1) {
 			Jobs.getCommandManager().sendUsage(sender, "expboost");
@@ -89,16 +87,34 @@ public class expboost implements Cmd {
 			return arr;
 		}
 
-		if (time.contains("s") || time.contains("second")) {
-			arr[0] = Integer.parseInt(time.split("s|second")[0]);
+		if (time.contains("h") || time.contains("hour")) {
+			try {
+				arr[2] = Integer.parseInt(time.split("h|hour")[0]);
+			} catch (NumberFormatException e) {
+				arr[2] = 0;
+			}
+
+			time = time.replaceAll(arr[2] + "+[h|hour]+", "");
 		}
 
 		if (time.contains("m") || time.contains("minute")) {
-			arr[1] = Integer.parseInt(time.split("m|minute")[0]);
+			try {
+				arr[1] = Integer.parseInt(time.split("m|minute")[0]);
+			} catch (NumberFormatException e) {
+				arr[1] = 0;
+			}
+
+			time = time.replaceAll(arr[1] + "+[m|minute]+", "");
 		}
 
-		if (time.contains("h") || time.contains("hour")) {
-			arr[2] = Integer.parseInt(time.split("h|hour")[0]);
+		if (time.contains("s") || time.contains("second")) {
+			try {
+				arr[0] = Integer.parseInt(time.split("s|second")[0]);
+			} catch (NumberFormatException e) {
+				arr[0] = 0;
+			}
+
+			time = time.replaceAll(arr[0] + "+[s|second]+", "");
 		}
 
 		if (arr[0] == 0 && arr[1] == 0 && arr[2] == 0) {

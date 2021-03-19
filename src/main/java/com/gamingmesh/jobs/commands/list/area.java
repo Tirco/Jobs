@@ -1,6 +1,5 @@
 package com.gamingmesh.jobs.commands.list;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -10,7 +9,6 @@ import org.bukkit.entity.Player;
 import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.CMILib.CMIMaterial;
 import com.gamingmesh.jobs.commands.Cmd;
-import com.gamingmesh.jobs.commands.JobCommand;
 import com.gamingmesh.jobs.config.RestrictedAreaManager;
 import com.gamingmesh.jobs.container.CuboidArea;
 import com.gamingmesh.jobs.container.RestrictedArea;
@@ -19,7 +17,6 @@ import com.gamingmesh.jobs.hooks.HookManager;
 public class area implements Cmd {
 
     @Override
-    @JobCommand(308)
     public boolean perform(Jobs plugin, final CommandSender sender, final String[] args) {
 	if (!(sender instanceof Player)) {
 	    sender.sendMessage(Jobs.getLanguage().getMessage("general.error.ingame"));
@@ -116,7 +113,7 @@ public class area implements Cmd {
 
 	if (args.length == 1 && args[0].equalsIgnoreCase("list")) {
 
-	    HashMap<String, RestrictedArea> areas = Jobs.getRestrictedAreaManager().getRestrictedAres();
+	    java.util.Map<String, RestrictedArea> areas = Jobs.getRestrictedAreaManager().getRestrictedAres();
 	    if (areas.isEmpty()) {
 		sender.sendMessage(Jobs.getLanguage().getMessage("command.area.output.noAreas"));
 		return true;

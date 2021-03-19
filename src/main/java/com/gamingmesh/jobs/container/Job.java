@@ -91,13 +91,23 @@ public class Job {
     private int maxDailyQuests = 1;
     private int id = 0;
 
+    @Deprecated
     public Job(String jobName, String fullName, String jobShortName, String description, CMIChatColor jobColour, Parser maxExpEquation, DisplayMethod displayMethod, int maxLevel,
+	int vipmaxLevel, Integer maxSlots, List<JobPermission> jobPermissions, List<JobCommands> jobCommands, List<JobConditions> jobConditions, HashMap<String, JobItems> jobItems,
+	HashMap<String, JobLimitedItems> jobLimitedItems, List<String> cmdOnJoin, List<String> cmdOnLeave, ItemStack guiItem, int guiSlot, String bossbar, Long rejoinCD, List<String> worldBlacklist) {
+	this(jobName, fullName, jobShortName, jobColour, maxExpEquation, displayMethod, maxLevel,
+	    vipmaxLevel, maxSlots, jobPermissions, jobCommands, jobConditions, jobItems,
+	    jobLimitedItems, cmdOnJoin, cmdOnLeave, guiItem, guiSlot, bossbar, rejoinCD, worldBlacklist);
+
+	this.description = description;
+    }
+
+    public Job(String jobName, String fullName, String jobShortName, CMIChatColor jobColour, Parser maxExpEquation, DisplayMethod displayMethod, int maxLevel,
 	int vipmaxLevel, Integer maxSlots, List<JobPermission> jobPermissions, List<JobCommands> jobCommands, List<JobConditions> jobConditions, HashMap<String, JobItems> jobItems,
 	HashMap<String, JobLimitedItems> jobLimitedItems, List<String> cmdOnJoin, List<String> cmdOnLeave, ItemStack guiItem, int guiSlot, String bossbar, Long rejoinCD, List<String> worldBlacklist) {
 	this.jobName = jobName == null ? "" : jobName;
 	this.fullName = fullName == null ? "" : fullName;
 	this.jobShortName = jobShortName;
-	this.description = description;
 	this.jobColour = jobColour;
 	this.maxExpEquation = maxExpEquation;
 	this.displayMethod = displayMethod;
@@ -121,15 +131,13 @@ public class Job {
 	}
     }
 
-    public void addBoost(CurrencyType type, double Point) {
-	boost.add(type, Point);
+    public void addBoost(CurrencyType type, double point) {
+	boost.add(type, point);
     }
 
     public void addBoost(CurrencyType type, double point, int[] times) {
-	final int h = times[2],
-	    m = times[1],
-	    s = times[0];
-	if (times.length < 3 || (h == 0 && m == 0 && s == 0)) {
+	final int h = times[2], m = times[1], s = times[0];
+	if (h == 0 && m == 0 && s == 0) {
 	    addBoost(type, point);
 	    return;
 	}
@@ -137,15 +145,23 @@ public class Job {
 	final Calendar cal = Calendar.getInstance();
 	cal.setTime(new Date());
 
-	cal.set(Calendar.HOUR_OF_DAY, cal.get(Calendar.HOUR_OF_DAY) + h);
-	cal.set(Calendar.MINUTE, cal.get(Calendar.MINUTE) + m);
-	cal.set(Calendar.SECOND, cal.get(Calendar.SECOND) + s);
+	if (h > 0) {
+	    cal.set(Calendar.HOUR_OF_DAY, cal.get(Calendar.HOUR_OF_DAY) + h);
+	}
+
+	if (m > 0) {
+	    cal.set(Calendar.MINUTE, cal.get(Calendar.MINUTE) + m);
+	}
+
+	if (s > 0) {
+	    cal.set(Calendar.SECOND, cal.get(Calendar.SECOND) + s);
+	}
 
 	boost.add(type, point, cal.getTimeInMillis());
     }
 
-    public void setBoost(BoostMultiplier BM) {
-	this.boost = BM;
+    public void setBoost(BoostMultiplier boost) {
+	this.boost = boost;
     }
 
     public BoostMultiplier getBoost() {
@@ -166,6 +182,7 @@ public class Job {
 
     public void updateTotalPlayers() {
 	totalPlayers = Jobs.getJobsDAO().getTotalPlayerAmountByJobName(jobName);
+
 	if (totalPlayers <= 0) {
 	    totalPlayers = Jobs.getJobsDAO().getTotalPlayerAmountByJobName(fullName);
 	}
@@ -292,6 +309,7 @@ public class Job {
 
     /**
      * Get the shortened version of the jobName
+     * 
      * @return the shortened version of the jobName
      */
     public String getShortName() {
@@ -300,8 +318,11 @@ public class Job {
 
     /**
      * Gets the description
+     * 
      * @return description
+     * @deprecated Not used anymore, use {@link #getFullDescription()} instead
      */
+    @Deprecated
     public String getDescription() {
 	return description;
     }
@@ -484,7 +505,10 @@ public class Job {
 
     public void setFullDescription(List<String> fDescription) {
 	this.fDescription.clear();
-	this.fDescription.addAll(fDescription == null ? new ArrayList<>() : fDescription);
+
+	if (fDescription != null) {
+	    this.fDescription.addAll(fDescription);
+	}
     }
 
     public List<Quest> getQuests() {
@@ -547,6 +571,8 @@ public class Job {
     }
 
     public void setId(int id) {
+	Jobs.getJobsIds().remove(this.id);
+
 	this.id = id;
 	if (id != 0)
 	    Jobs.getJobsIds().put(id, this);

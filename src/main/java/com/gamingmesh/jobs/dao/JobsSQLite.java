@@ -1,8 +1,6 @@
 package com.gamingmesh.jobs.dao;
 
 import java.io.File;
-import java.sql.DatabaseMetaData;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -48,13 +46,13 @@ public class JobsSQLite extends JobsDAO {
 	JobsConnection conn = getConnection();
 	if (conn == null)
 	    return null;
-	PreparedStatement prest = null;
+
 	try {
-	    prest = conn.prepareStatement(query);
+	    return conn.prepareStatement(query);
 	} catch (SQLException | NumberFormatException e) {
 	    e.printStackTrace();
 	}
-	return prest;
+	return null;
     }
 
     @Override
@@ -79,10 +77,8 @@ public class JobsSQLite extends JobsDAO {
 
     @Override
     public boolean isTable(String table) {
-	DatabaseMetaData md = null;
 	try {
-	    md = getConnection().getMetaData();
-	    ResultSet tables = md.getTables(null, null, table, null);
+	    ResultSet tables = getConnection().getMetaData().getTables(null, null, table, null);
 	    if (tables.next()) {
 		tables.close();
 		return true;
@@ -97,10 +93,8 @@ public class JobsSQLite extends JobsDAO {
 
     @Override
     public boolean isCollumn(String table, String collumn) {
-	DatabaseMetaData md = null;
 	try {
-	    md = getConnection().getMetaData();
-	    ResultSet tables = md.getColumns(null, null, table, collumn);
+	    ResultSet tables = getConnection().getMetaData().getColumns(null, null, table, collumn);
 	    if (tables.next()) {
 		tables.close();
 		return true;
@@ -135,15 +129,13 @@ public class JobsSQLite extends JobsDAO {
     @Override
     public boolean truncate(String table) {
 	Statement statement = null;
-	String query = null;
 	try {
 	    if (!isTable(table)) {
 		Jobs.consoleMsg("&cTable \"" + table + "\" does not exist.");
 		return false;
 	    }
 	    statement = getConnection().createStatement();
-	    query = "DELETE FROM `" + table + "`;";
-	    statement.executeQuery(query);
+	    statement.executeQuery("DELETE FROM `" + table + "`;");
 	    return true;
 	} catch (SQLException e) {
 	    if (!(e.getMessage().toLowerCase().contains("locking") || e.getMessage().toLowerCase().contains("locked")) &&
@@ -158,15 +150,13 @@ public class JobsSQLite extends JobsDAO {
     @Override
     public boolean drop(String table) {
 	Statement statement = null;
-	String query = null;
 	try {
 	    if (!isTable(table)) {
 		Jobs.consoleMsg("&cTable \"" + table + "\" does not exist.");
 		return false;
 	    }
 	    statement = getConnection().createStatement();
-	    query = "DROP TABLE IF EXISTS `" + table + "`;";
-	    statement.executeQuery(query);
+	    statement.executeQuery("DROP TABLE IF EXISTS `" + table + "`;");
 	    return true;
 	} catch (SQLException e) {
 	    if (!(e.getMessage().toLowerCase().contains("locking") || e.getMessage().toLowerCase().contains("locked")) &&

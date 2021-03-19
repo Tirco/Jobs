@@ -19,8 +19,8 @@
 package com.gamingmesh.jobs.container;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import org.bukkit.enchantments.Enchantment;
@@ -28,6 +28,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.CMILib.CMIChatColor;
 import com.gamingmesh.jobs.CMILib.CMIMaterial;
 
@@ -41,10 +42,10 @@ public class JobLimitedItems {
     private int amount;
     private String name;
     private List<String> lore;
-    private HashMap<Enchantment, Integer> enchants;
+    private Map<Enchantment, Integer> enchants;
     private int level;
 
-    public JobLimitedItems(String node, int id, int data, int amount, String name, List<String> lore, HashMap<Enchantment, Integer> enchants, int level) {
+    public JobLimitedItems(String node, int id, int data, int amount, String name, List<String> lore, Map<Enchantment, Integer> enchants, int level) {
 	this.node = node;
 	this.id = id;
 	this.data = data;
@@ -60,37 +61,42 @@ public class JobLimitedItems {
     }
 
     public ItemStack getItemStack(Player player) {
-	try {
-	    mat = CMIMaterial.get(id, data);
-	    ItemStack item = mat.newItemStack();
-	    item.setAmount(amount);
-	    ItemMeta meta = item.getItemMeta();
-	    if (this.name != null)
-		meta.setDisplayName(CMIChatColor.translate(name));
-	    if (lore != null && !lore.isEmpty()) {
-		List<String> TranslatedLore = new ArrayList<>();
-		for (String oneLore : lore) {
-		    TranslatedLore.add(CMIChatColor.translate(oneLore.replace("[player]", player.getName())));
-		}
-		meta.setLore(TranslatedLore);
-	    }
-	    if (enchants != null)
-		for (Entry<Enchantment, Integer> OneEnchant : enchants.entrySet()) {
-		    meta.addEnchant(OneEnchant.getKey(), OneEnchant.getValue(), true);
-		}
-	    item.setItemMeta(meta);
+	mat = CMIMaterial.get(id, data);
 
+	ItemStack item = mat.newItemStack();
+	item.setAmount(amount);
+
+	ItemMeta meta = item.getItemMeta();
+	if (meta == null) {
 	    return item;
-	} catch (Throwable e) {
 	}
-	return null;
+
+	if (name != null)
+	    Jobs.getInstance().getComplement().setDisplayName(meta, CMIChatColor.translate(name));
+
+	if (lore != null && !lore.isEmpty()) {
+	    List<String> translatedLore = new ArrayList<>();
+	    for (String oneLore : lore) {
+		translatedLore.add(CMIChatColor.translate(oneLore.replace("[player]", player.getName())));
+	    }
+
+	    Jobs.getInstance().getComplement().setLore(meta, translatedLore);
+	}
+
+	if (enchants != null)
+	    for (Entry<Enchantment, Integer> oneEnchant : enchants.entrySet()) {
+		meta.addEnchant(oneEnchant.getKey(), oneEnchant.getValue(), true);
+	    }
+
+	item.setItemMeta(meta);
+	return item;
     }
 
     @Deprecated
     public int getId() {
 	return id;
     }
-    
+
     public CMIMaterial getType(){
 	return mat;
     }
@@ -103,7 +109,7 @@ public class JobLimitedItems {
 	return lore;
     }
 
-    public HashMap<Enchantment, Integer> getenchants() {
+    public Map<Enchantment, Integer> getEnchants() {
 	return enchants;
     }
 

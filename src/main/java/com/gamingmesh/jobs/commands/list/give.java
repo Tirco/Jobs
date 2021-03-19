@@ -7,7 +7,6 @@ import org.bukkit.entity.Player;
 import com.gamingmesh.jobs.ItemBoostManager;
 import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.commands.Cmd;
-import com.gamingmesh.jobs.commands.JobCommand;
 import com.gamingmesh.jobs.container.Job;
 import com.gamingmesh.jobs.container.JobItems;
 import com.gamingmesh.jobs.container.JobLimitedItems;
@@ -27,7 +26,6 @@ public class give implements Cmd {
     }
 
     @Override
-    @JobCommand(2500)
     public boolean perform(Jobs plugin, final CommandSender sender, final String[] args) {
 	Player player = null;
 	Job job = null;
@@ -79,7 +77,7 @@ public class give implements Cmd {
 		return true;
 	    }
 
-	    GiveItem.GiveItemForPlayer(player, jItem.getItemStack(player));
+	    GiveItem.giveItemForPlayer(player, jItem.getItemStack(player));
 	    break;
 	case limiteditems:
 	    if (job == null) {
@@ -93,7 +91,7 @@ public class give implements Cmd {
 		return true;
 	    }
 
-	    GiveItem.GiveItemForPlayer(player, jLItem.getItemStack(player));
+	    GiveItem.giveItemForPlayer(player, jLItem.getItemStack(player));
 	    break;
 	default:
 	    break;

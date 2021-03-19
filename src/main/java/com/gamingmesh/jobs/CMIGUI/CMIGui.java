@@ -20,6 +20,7 @@ import com.gamingmesh.jobs.CMIGUI.GUIManager.GUIRows;
 import com.gamingmesh.jobs.CMIGUI.GUIManager.InvType;
 import com.gamingmesh.jobs.CMILib.CMIChatColor;
 import com.gamingmesh.jobs.CMILib.CMIMaterial;
+import com.gamingmesh.jobs.CMILib.Version;
 import com.gamingmesh.jobs.commands.JobsCommands;
 import com.gamingmesh.jobs.stuff.PageInfo;
 
@@ -159,12 +160,18 @@ public class CMIGui {
     }
 
     public void setTitle(String title) {
-	if (title.length() > 32) {
-	    title = title.substring(0, 31) + "~";
+	if (Version.isCurrentEqualOrHigher(Version.v1_16_R1)) {
+	    if (CMIChatColor.stripColor(title).length() > 64) {
+		title = title.substring(0, 63) + "~";
+	    }
+	} else {
+	    if (title.length() > 32) {
+		title = title.substring(0, 31) + "~";
+	    }
 	}
-
 	this.title = title;
     }
+    
 
     public HashMap<Integer, CMIGuiButton> getButtons() {
 	combineButtons();
@@ -306,7 +313,7 @@ public class CMIGui {
     }
 
     public void addPagination(PageInfo pi, Object cmd, String pagePref) {
-	addPagination(pi, JobsCommands.label + " " + cmd.getClass().getSimpleName(), pagePref);
+	addPagination(pi, JobsCommands.LABEL + " " + cmd.getClass().getSimpleName(), pagePref);
     }
 
     public void addPagination(PageInfo pi, String cmd, String pagePref) {

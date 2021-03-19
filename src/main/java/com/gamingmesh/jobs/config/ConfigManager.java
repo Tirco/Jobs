@@ -424,7 +424,7 @@ public class ConfigManager {
 		}
 		if (matId != null) {
 		    material = CMIMaterial.get(matId);
-		    if (material != null) {
+		    if (material != CMIMaterial.NONE) {
 			Jobs.getPluginLogger().warning("Job " + jobName + " " + actionType.getName() + " is using ID: " + myKey + "!");
 			Jobs.getPluginLogger().warning("Please use the Material name instead: " + material.toString() + "!");
 		    }
@@ -439,15 +439,15 @@ public class ConfigManager {
 	if (actionType == ActionType.STRIPLOGS && Version.isCurrentLower(Version.v1_13_R1))
 	    return null;
 
-	if (material != null && material.getMaterial() != null && material.isAir()) {
+	if (material.getMaterial() != null && material.isAir()) {
 	    Jobs.getPluginLogger().warning("Job " + jobName + " " + actionType.getName() + " can't recognize material! (" + myKey + ")");
 	    return null;
 	}
 
-	if (material != null && Version.isCurrentLower(Version.v1_13_R1) && meta.isEmpty())
+	if (Version.isCurrentLower(Version.v1_13_R1) && meta.isEmpty())
 	    meta = String.valueOf(material.getData());
 
-	c: if (material != null && material != CMIMaterial.NONE && material.getMaterial() != null) {
+	c: if (material != CMIMaterial.NONE && material.getMaterial() != null && !material.isAir()) {
 	    // Need to include those ones and count as regular blocks
 	    switch (myKey.replace("_", "").toLowerCase()) {
 	    case "itemframe":
@@ -471,7 +471,7 @@ public class ConfigManager {
 
 	    // Break and Place actions MUST be blocks
 	    if (actionType == ActionType.BREAK || actionType == ActionType.PLACE || actionType == ActionType.STRIPLOGS) {
-		if (!material.isBlock()) {
+		if (!material.isBlock() || material.getMaterial().toString().equalsIgnoreCase("AIR")) {
 		    Jobs.getPluginLogger().warning("Job " + jobName + " has an invalid " + actionType.getName() + " type property: " + material
 			+ " (" + myKey + ")! Material must be a block! Use \"/jobs blockinfo\" on a target block");
 		    return null;
@@ -503,6 +503,8 @@ public class ConfigManager {
 	    // END HACK
 
 	    type = material.getMaterial().toString();
+	    if (Version.isCurrentEqualOrLower(Version.v1_12_R1) && material.getLegacyData() > 0)
+		subType = ":" + material.getLegacyData();
 	    id = material.getId();
 	} else if (actionType == ActionType.KILL || actionType == ActionType.TAME || actionType == ActionType.BREED || actionType == ActionType.MILK) {
 	    // check entities
@@ -561,13 +563,17 @@ public class ConfigManager {
 		}
 	    }
 	} else if (actionType == ActionType.ENCHANT) {
-	    CMIEnchantment enchant = CMIEnchantment.get(myKey);
+	    Enchantment enchant = CMIEnchantment.getEnchantment(myKey);
+
 	    if (enchant == null && material == CMIMaterial.NONE) {
 		Jobs.getPluginLogger().warning("Job " + jobName + " has an invalid " + actionType.getName() + " type property: " + myKey + "!");
 		return null;
 	    }
 
-	    type = enchant == null ? myKey : enchant.toString();
+	    CMIEnchantment cmiEnchant = CMIEnchantment.get(enchant);
+
+	    type = cmiEnchant != null ? cmiEnchant.toString() : enchant == null ? myKey : enchant.getKey().getKey().toLowerCase().replace("_", "").replace("minecraft:", "");
+
 	} else if (actionType == ActionType.CUSTOMKILL || actionType == ActionType.COLLECT || actionType == ActionType.MMKILL
 	    || actionType == ActionType.BAKE || actionType == ActionType.SMELT) {
 	    type = myKey;
@@ -824,7 +830,7 @@ public class ConfigManager {
 	    }
 
 	    Parser maxExpEquation;
-	    String maxExpEquationInput = jobKey.equalsIgnoreCase("None") ? "0" : jobSection.getString("leveling-progression-equation");
+	    String maxExpEquationInput = jobKey.equalsIgnoreCase("None") ? "0" : jobSection.getString("leveling-progression-equation", "0");
 	    try {
 		maxExpEquation = new Parser(maxExpEquationInput);
 		// test equation
@@ -853,7 +859,7 @@ public class ConfigManager {
 	    }
 
 	    Parser expEquation;
-	    String expEquationInput = jobKey.equalsIgnoreCase("None") ? "0" : jobSection.getString("experience-progression-equation");
+	    String expEquationInput = jobKey.equalsIgnoreCase("None") ? "0" : jobSection.getString("experience-progression-equation", "0");
 	    try {
 		expEquation = new Parser(expEquationInput);
 		// test equation
@@ -901,10 +907,10 @@ public class ConfigManager {
 
 		    CMIMaterial material = CMIMaterial.get(item + (subType));
 
-		    if (material == null)
+		    if (material == CMIMaterial.NONE)
 			material = CMIMaterial.get(item.replace(' ', '_').toUpperCase());
 
-		    if (material == null) {
+		    if (material == CMIMaterial.NONE) {
 			// try integer method
 			Integer matId = null;
 			try {
@@ -1077,10 +1083,6 @@ public class ConfigManager {
 			continue;
 		    }
 
-		    int id = itemSection.getInt("id");
-
-		    String name = itemSection.getString("name");
-
 		    List<String> lore = new ArrayList<>();
 		    if (itemSection.isList("lore"))
 			itemSection.getStringList("lore").stream().map(CMIChatColor::translate).forEach(lore::add);
@@ -1103,9 +1105,9 @@ public class ConfigManager {
 				enchants.put(ench, level);
 			}
 
-		    int level = itemSection.getInt("level");
 		    String node = itemKey.toLowerCase();
-		    jobLimitedItems.put(node, new JobLimitedItems(node, id, 0, 1, name, lore, enchants, level));
+		    jobLimitedItems.put(node, new JobLimitedItems(node, itemSection.getInt("id"), 0, 1, itemSection.getString("name"),
+		        lore, enchants, itemSection.getInt("level")));
 		}
 	    }
 
@@ -1227,9 +1229,9 @@ public class ConfigManager {
 
 	    for (ActionType actionType : ActionType.values()) {
 		ConfigurationSection typeSection = jobSection.getConfigurationSection(actionType.getName());
-		ArrayList<JobInfo> jobInfo = new ArrayList<>();
+		List<JobInfo> jobInfo = new ArrayList<>();
 		if (typeSection != null) {
-		    if (typeSection.isList("materials")) {
+		    if (!typeSection.getStringList("materials").isEmpty()) {
 			for (String mat : typeSection.getStringList("materials")) {
 			    if (!mat.contains(";")) {
 				continue;

@@ -11,7 +11,6 @@ import org.bukkit.entity.Player;
 
 import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.commands.Cmd;
-import com.gamingmesh.jobs.commands.JobCommand;
 import com.gamingmesh.jobs.container.CurrencyType;
 import com.gamingmesh.jobs.container.JobsPlayer;
 import com.gamingmesh.jobs.container.Log;
@@ -21,7 +20,6 @@ import com.gamingmesh.jobs.stuff.Sorting;
 public class log implements Cmd {
 
     @Override
-    @JobCommand(1100)
     public boolean perform(Jobs plugin, final CommandSender sender, final String[] args) {
 	if (!(sender instanceof Player) && args.length != 1) {
 	    sender.sendMessage(Jobs.getLanguage().getMessage("general.error.ingame"));
@@ -37,7 +35,7 @@ public class log implements Cmd {
 	if (args.length == 0)
 	    JPlayer = Jobs.getPlayerManager().getJobsPlayer((Player) sender);
 	else if (args.length == 1) {
-	    if (!Jobs.hasPermission(sender, "jobs.commands.log.others", true))
+	    if (!Jobs.hasPermission(sender, "jobs.command.log.others", true))
 		return true;
 
 	    JPlayer = Jobs.getPlayerManager().getJobsPlayer(args[0]);
@@ -48,7 +46,7 @@ public class log implements Cmd {
 	    return true;
 	}
 
-	HashMap<String, Log> logList = JPlayer.getLog();
+	Map<String, Log> logList = JPlayer.getLog();
 	if (logList == null || logList.isEmpty()) {
 	    sender.sendMessage(Jobs.getLanguage().getMessage("command.log.output.bottomline"));
 	    sender.sendMessage(Jobs.getLanguage().getMessage("command.log.output.nodata"));
@@ -75,10 +73,9 @@ public class log implements Cmd {
 
 	sender.sendMessage(Jobs.getLanguage().getMessage("command.log.output.topline", "%playername%", JPlayer.getName()));
 	for (Log one : logList.values()) {
-	    HashMap<String, LogAmounts> AmountList = one.getAmountList();
-	    double totalMoney = 0,
-			totalExp = 0,
-			totalPoints = 0;
+	    Map<String, LogAmounts> AmountList = one.getAmountList();
+	    double totalMoney = 0, totalExp = 0, totalPoints = 0;
+
 	    for (String oneSorted : unsortMap.keySet()) {
 		for (Entry<String, LogAmounts> oneMap : AmountList.entrySet()) {
 		    if (oneMap.getKey().equalsIgnoreCase(oneSorted)) {
@@ -110,7 +107,7 @@ public class log implements Cmd {
 			sender.sendMessage(Jobs.getLanguage().getMessage("command.log.output.ls",
 			    "%number%", count,
 			    "%action%", one.getActionType(),
-			    "%item%", amounts.getItemName().replace(":0", "").replace("_", " ").toLowerCase(),
+			    "%item%", amounts.getItemName().replace(":0", "").replace('_', ' ').toLowerCase(),
 			    "%qty%", amounts.getCount(),
 			    "%money%", moneyS,
 			    "%exp%", expS,

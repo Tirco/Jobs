@@ -9,6 +9,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
@@ -592,22 +593,18 @@ public abstract class JobsDAO {
      */
 
     public List<JobsDAOData> getAllJobs(String playerName, UUID uuid) {
-
-	int id = -1;
 	PlayerInfo userData = null;
-
 	if (Jobs.getGCManager().MultiServerCompatability())
 	    userData = loadPlayerData(uuid);
 	else
 	    userData = Jobs.getPlayerManager().getPlayerInfo(uuid);
 
-	ArrayList<JobsDAOData> jobs = new ArrayList<>();
+	List<JobsDAOData> jobs = new ArrayList<>();
 
 	if (userData == null) {
 	    recordNewPlayer(playerName, uuid);
 	    return jobs;
 	}
-	id = userData.getID();
 
 	JobsConnection conn = getConnection();
 	if (conn == null)
@@ -617,7 +614,7 @@ public abstract class JobsDAO {
 	ResultSet res = null;
 	try {
 	    prest = conn.prepareStatement("SELECT * FROM `" + getJobsTableName() + "` WHERE `" + JobsTableFields.userid.getCollumn() + "` = ?;");
-	    prest.setInt(1, id);
+	    prest.setInt(1, userData.getID());
 	    res = prest.executeQuery();
 	    while (res.next()) {
 		int jobId = res.getInt(JobsTableFields.jobid.getCollumn());
@@ -638,8 +635,8 @@ public abstract class JobsDAO {
 	return jobs;
     }
 
-    public HashMap<Integer, List<JobsDAOData>> getAllJobs() {
-	HashMap<Integer, List<JobsDAOData>> map = new HashMap<>();
+    public Map<Integer, List<JobsDAOData>> getAllJobs() {
+	Map<Integer, List<JobsDAOData>> map = new HashMap<>();
 	JobsConnection conn = getConnection();
 	if (conn == null)
 	    return map;
@@ -680,8 +677,8 @@ public abstract class JobsDAO {
 	return map;
     }
 
-    public HashMap<Integer, PlayerPoints> getAllPoints() {
-	HashMap<Integer, PlayerPoints> map = new HashMap<>();
+    public Map<Integer, PlayerPoints> getAllPoints() {
+	Map<Integer, PlayerPoints> map = new HashMap<>();
 	JobsConnection conn = getConnection();
 	if (conn == null)
 	    return map;
@@ -726,8 +723,8 @@ public abstract class JobsDAO {
 	return points;
     }
 
-    public HashMap<Integer, ArchivedJobs> getAllArchivedJobs() {
-	HashMap<Integer, ArchivedJobs> map = new HashMap<>();
+    public Map<Integer, ArchivedJobs> getAllArchivedJobs() {
+	Map<Integer, ArchivedJobs> map = new HashMap<>();
 	JobsConnection conn = getConnection();
 	if (conn == null)
 	    return map;
@@ -820,8 +817,8 @@ public abstract class JobsDAO {
 	return jobs;
     }
 
-    public HashMap<Integer, HashMap<String, Log>> getAllLogs() {
-	HashMap<Integer, HashMap<String, Log>> map = new HashMap<>();
+    public Map<Integer, Map<String, Log>> getAllLogs() {
+	Map<Integer, Map<String, Log>> map = new HashMap<>();
 	JobsConnection conn = getConnection();
 	if (conn == null)
 	    return map;
@@ -835,7 +832,7 @@ public abstract class JobsDAO {
 	    while (res.next()) {
 		int id = res.getInt(LogTableFields.userid.getCollumn());
 
-		HashMap<String, Log> m = map.get(id);
+		Map<String, Log> m = map.get(id);
 		if (m == null)
 		    m = new HashMap<>();
 		String action = res.getString(LogTableFields.action.getCollumn());
@@ -844,7 +841,7 @@ public abstract class JobsDAO {
 		if (log == null)
 		    log = new Log(action);
 
-		HashMap<CurrencyType, Double> amounts = new HashMap<>();
+		Map<CurrencyType, Double> amounts = new HashMap<>();
 		amounts.put(CurrencyType.MONEY, res.getDouble(LogTableFields.money.getCollumn()));
 		amounts.put(CurrencyType.EXP, res.getDouble(LogTableFields.exp.getCollumn()));
 		amounts.put(CurrencyType.POINTS, res.getDouble(LogTableFields.points.getCollumn()));
@@ -1024,7 +1021,7 @@ public abstract class JobsDAO {
 	    for (JobsWorld jobsWorld : Util.getJobsWorlds().values()) {
 		exploreStatement.setInt(1, jobsWorld.getId());
 		exploreStatement.setString(2, jobsWorld.getName());
-		exploreStatement.execute();
+		exploreStatement.executeUpdate();
 	    }
 	} catch (SQLException e) {
 	    e.printStackTrace();
@@ -1039,7 +1036,7 @@ public abstract class JobsDAO {
 	    for (JobsWorld jobsWorld : Util.getJobsWorlds().values()) {
 		exploreStatementBack.setString(1, jobsWorld.getName());
 		exploreStatementBack.setInt(2, jobsWorld.getId());
-		exploreStatementBack.execute();
+		exploreStatementBack.executeUpdate();
 	    }
 	} catch (SQLException e) {
 	    e.printStackTrace();
@@ -1054,7 +1051,7 @@ public abstract class JobsDAO {
 	    for (JobsWorld jobsWorld : Util.getJobsWorlds().values()) {
 		bpStatement.setInt(1, jobsWorld.getId());
 		bpStatement.setString(2, jobsWorld.getName());
-		bpStatement.execute();
+		bpStatement.executeUpdate();
 	    }
 	} catch (SQLException e) {
 	    e.printStackTrace();
@@ -1069,7 +1066,7 @@ public abstract class JobsDAO {
 	    for (JobsWorld jobsWorld : Util.getJobsWorlds().values()) {
 		bpStatementback.setString(1, jobsWorld.getName());
 		bpStatementback.setInt(2, jobsWorld.getId());
-		bpStatementback.execute();
+		bpStatementback.executeUpdate();
 	    }
 	} catch (SQLException e) {
 	    e.printStackTrace();
@@ -1084,7 +1081,7 @@ public abstract class JobsDAO {
 	    for (Job job : Jobs.getJobs()) {
 		archiveStatement.setInt(1, job.getId());
 		archiveStatement.setString(2, job.getName());
-		archiveStatement.execute();
+		archiveStatement.executeUpdate();
 	    }
 	} catch (SQLException e) {
 	    e.printStackTrace();
@@ -1098,7 +1095,7 @@ public abstract class JobsDAO {
 	    for (Job job : Jobs.getJobs()) {
 		archiveStatementBack.setString(1, job.getName());
 		archiveStatementBack.setInt(2, job.getId());
-		archiveStatementBack.execute();
+		archiveStatementBack.executeUpdate();
 	    }
 	} catch (SQLException e) {
 	    e.printStackTrace();
@@ -1112,7 +1109,7 @@ public abstract class JobsDAO {
 	    for (Job job : Jobs.getJobs()) {
 		usersStatement.setInt(1, job.getId());
 		usersStatement.setString(2, job.getName());
-		usersStatement.execute();
+		usersStatement.executeUpdate();
 	    }
 	} catch (SQLException e) {
 	    e.printStackTrace();
@@ -1125,7 +1122,7 @@ public abstract class JobsDAO {
 	    for (Job job : Jobs.getJobs()) {
 		usersStatementBack.setString(1, job.getName());
 		usersStatementBack.setInt(2, job.getId());
-		usersStatementBack.execute();
+		usersStatementBack.executeUpdate();
 	    }
 	} catch (SQLException e) {
 	    e.printStackTrace();
@@ -1140,7 +1137,7 @@ public abstract class JobsDAO {
 	    for (CurrencyType type : CurrencyType.values()) {
 		limitsStatement.setInt(1, type.getId());
 		limitsStatement.setString(2, type.getName());
-		limitsStatement.execute();
+		limitsStatement.executeUpdate();
 	    }
 	} catch (SQLException e) {
 	    e.printStackTrace();
@@ -1155,7 +1152,7 @@ public abstract class JobsDAO {
 	    for (CurrencyType type : CurrencyType.values()) {
 		limitsStatementBack.setString(1, type.getName());
 		limitsStatementBack.setInt(2, type.getId());
-		limitsStatementBack.execute();
+		limitsStatementBack.executeUpdate();
 	    }
 	} catch (SQLException e) {
 	    e.printStackTrace();
@@ -1191,10 +1188,41 @@ public abstract class JobsDAO {
 
 	    conn.commit();
 	} catch (SQLException e) {
-//	    e.printStackTrace();
 	} finally {
 	    close(prestt);
 	    close(res2);
+	}
+    }
+
+    private void updateJobId(Job job) {
+	JobsConnection conn = getConnection();
+	if (conn == null)
+	    return;
+
+	PreparedStatement prestt = null;
+	ResultSet res = null;
+	try {
+	    // Retrieve last id from table instead of generating new one
+	    int jobId = 0;
+	    prestt = conn.prepareStatement("SELECT * FROM `" + DBTables.JobNameTable.getTableName() + "`;");
+	    res = prestt.executeQuery();
+	    while (res.next()) {
+		jobId = res.getInt("id");
+	    }
+	    close(prestt);
+	    close(res);
+
+	    job.setId(jobId + 1);
+
+	    prestt = conn.prepareStatement("UPDATE `" + getJobsTableName() + "` SET `" + JobsTableFields.jobid.getCollumn() + "` = ? WHERE `" + JobsTableFields.job.getCollumn() + "` = ?;");
+	    prestt.setString(1, job.getName());
+	    prestt.setInt(2, job.getId());
+	    prestt.execute();
+	} catch (SQLException e) {
+	    e.printStackTrace();
+	} finally {
+	    close(prestt);
+	    close(res);
 	}
     }
 
@@ -1225,7 +1253,7 @@ public abstract class JobsDAO {
 
 	for (Job one : Jobs.getJobs()) {
 	    if (one.getId() == 0)
-		recordNewJobName(one);
+		updateJobId(one);
 	}
     }
 
@@ -1399,8 +1427,8 @@ public abstract class JobsDAO {
 	return data;
     }
 
-    public synchronized HashMap<Integer, PaymentData> loadPlayerLimits() {
-	HashMap<Integer, PaymentData> map = new HashMap<>();
+    public synchronized Map<Integer, PaymentData> loadPlayerLimits() {
+	Map<Integer, PaymentData> map = new HashMap<>();
 	JobsConnection conn = getConnection();
 	if (conn == null)
 	    return map;
@@ -1748,10 +1776,10 @@ public abstract class JobsDAO {
     }
 
     public PlayerInfo loadPlayerData(UUID uuid) {
-	PlayerInfo pInfo = null;
 	JobsConnection conn = getConnection();
 	if (conn == null)
-	    return pInfo;
+	    return null;
+	PlayerInfo pInfo = null;
 	PreparedStatement prest = null;
 	ResultSet res = null;
 	try {
@@ -1820,8 +1848,6 @@ public abstract class JobsDAO {
 	    close(res);
 	    close(prest);
 	}
-
-	return;
     }
 
     public JobsPlayer loadFromDao(JobsPlayer jPlayer) {
@@ -2127,7 +2153,6 @@ public abstract class JobsDAO {
 		prest2.execute();
 		conn.commit();
 	    }
-	    conn.setAutoCommit(true);
 	} catch (SQLException e) {
 	    e.printStackTrace();
 	    close(prest1);
@@ -2162,7 +2187,7 @@ public abstract class JobsDAO {
 	    res = prest.executeQuery();
 	    while (res.next()) {
 
-		HashMap<CurrencyType, Double> amounts = new HashMap<>();
+		Map<CurrencyType, Double> amounts = new HashMap<>();
 		amounts.put(CurrencyType.MONEY, res.getDouble(LogTableFields.money.getCollumn()));
 		amounts.put(CurrencyType.EXP, res.getDouble(LogTableFields.exp.getCollumn()));
 		amounts.put(CurrencyType.POINTS, res.getDouble(LogTableFields.points.getCollumn()));
@@ -2391,7 +2416,7 @@ public abstract class JobsDAO {
 	    conn.setAutoCommit(false);
 	    int i = 0;
 
-	    HashMap<String, ExploreRegion> temp = new HashMap<>(Jobs.getExplore().getWorlds());
+	    Map<String, ExploreRegion> temp = new HashMap<>(Jobs.getExplore().getWorlds());
 
 	    for (Entry<String, ExploreRegion> worlds : temp.entrySet()) {
 		JobsWorld jobsWorld = Util.getJobsWorld(worlds.getKey());
@@ -2444,7 +2469,7 @@ public abstract class JobsDAO {
 
 	    int i = 0;
 
-	    HashMap<String, ExploreRegion> temp = new HashMap<>(Jobs.getExplore().getWorlds());
+	    Map<String, ExploreRegion> temp = new HashMap<>(Jobs.getExplore().getWorlds());
 
 	    for (ExploreRegion worlds : temp.values()) {
 		for (ExploreChunk oneChunk : worlds.getChunks().values()) {

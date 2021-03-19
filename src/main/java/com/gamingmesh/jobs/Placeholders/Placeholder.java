@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,7 +30,9 @@ import com.gamingmesh.jobs.stuff.TimeManage;
 public class Placeholder {
 
     private Jobs plugin;
-    Pattern placeholderPatern = Pattern.compile("(%)([^\"^%]*)(%)");
+
+    private final AtomicInteger jobLevel = new AtomicInteger();
+    private final Pattern placeholderPatern = Pattern.compile("(%)([^\"^%]*)(%)");
 
     public Placeholder(Jobs plugin) {
 	this.plugin = plugin;
@@ -44,6 +47,10 @@ public class Placeholder {
 	user_maxbstandcount,
 	user_furncount,
 	user_maxfurncount,
+	user_smokercount,
+	user_maxsmokercount,
+	user_blastcount,
+	user_maxblastcount,
 	user_doneq,
 	user_dailyquests_pending,
 	user_dailyquests_completed,
@@ -72,8 +79,8 @@ public class Placeholder {
 	user_jmaxlvl_$1("jname/number"),
 	user_job_$1("jname/number"),
 	user_title_$1("jname/number"),
-	user_archived_jobs_level("jname/number"),
-	user_archived_jobs_exp("jname/number"),
+	user_archived_jobs_level_$1("jname/number"),
+	user_archived_jobs_exp_$1("jname/number"),
 
 	maxjobs,
 
@@ -335,8 +342,7 @@ public class Placeholder {
 		if (!message.contains("%"))
 		    break;
 
-		String cmd = match.group(2);
-		JobsPlaceHolders place = JobsPlaceHolders.getByNameExact(cmd);
+		JobsPlaceHolders place = JobsPlaceHolders.getByNameExact(match.group(2));
 		if (place == null)
 		    continue;
 
@@ -419,6 +425,16 @@ public class Placeholder {
 		return Integer.toString(user.getFurnaceCount());
 	    case user_maxfurncount:
 		return Integer.toString(user.getMaxOwnerShipAllowed(BlockTypes.FURNACE));
+	    case user_smokercount:
+		return !plugin.getBlockOwnerShip(BlockTypes.SMOKER).isPresent() ? "0"
+		    : Integer.toString(plugin.getBlockOwnerShip(BlockTypes.SMOKER).get().getTotal(uuid));
+	    case user_maxsmokercount:
+		return Integer.toString(user.getMaxOwnerShipAllowed(BlockTypes.SMOKER));
+	    case user_blastcount:
+		return !plugin.getBlockOwnerShip(BlockTypes.BLAST_FURNACE).isPresent() ? "0"
+			    : Integer.toString(plugin.getBlockOwnerShip(BlockTypes.BLAST_FURNACE).get().getTotal(uuid));
+	    case user_maxblastcount:
+		return Integer.toString(user.getMaxOwnerShipAllowed(BlockTypes.BLAST_FURNACE));
 	    case user_doneq:
 		return Integer.toString(user.getDoneQuests());
 	    case user_seen:
@@ -475,6 +491,8 @@ public class Placeholder {
 		    return "";
 
 		JobProgression j = getProgFromValue(user, vals.get(0));
+		Job job = getJobFromValue(vals.get(0));
+
 		switch (placeHolder) {
 		case limit_$1:
 		    CurrencyType t = CurrencyType.getByName(vals.get(0));
@@ -504,23 +522,17 @@ public class Placeholder {
 				CurrencyType.getByName(vals.get(1))));
 		case user_jtoplvl_$1_$2:
 		    vals = placeHolder.getComplexValues(value);
-		    if (vals.size() < 2)
+		    if (vals.size() < 2 || job == null)
 			return "";
 
-		    Job job = getJobFromValue(vals.get(0));
-		    if (job == null)
-			return "";
-
-			int amount = 0;
 			try {
-			    amount = Integer.parseInt(vals.get(1));
+			    jobLevel.set(Integer.parseInt(vals.get(1)));
 			} catch (NumberFormatException e) {
 			    return "";
 			}
 
-			final int top = amount;
 			return CompletableFuture.supplyAsync(() -> {
-			    for (TopList l : Jobs.getJobsDAO().getGlobalTopList(top)) {
+			    for (TopList l : Jobs.getJobsDAO().getGlobalTopList(jobLevel.get())) {
 				if (l.getPlayerInfo().getName().equals(user.getName())) {
 				    JobProgression prog = l.getPlayerInfo().getJobsPlayer().getJobProgression(job);
 				    return prog == null ? "" : Integer.toString(prog.getLevel());
@@ -534,29 +546,27 @@ public class Placeholder {
 		    if (vals.isEmpty())
 			return "";
 
-		    Job jobs = getJobFromValue(vals.get(0));
-		    return jobs == null ? "no" : convert(user.isInJob(jobs));
+		    return job == null ? "no" : convert(user.isInJob(job));
 		case user_job_$1:
 		    return j == null ? "" : j.getJob().getName();
 		case user_title_$1:
 		    if (j == null)
 			return "";
-		    Title title = Jobs.gettitleManager().getTitle(j.getLevel(), j.getJob().getName());
+		    Title title = Jobs.getTitleManager().getTitle(j.getLevel(), j.getJob().getName());
 		    return title == null ? "" : title.getChatColor() + title.getName();
-		case user_archived_jobs_level:
-		    if (j == null) {
+		case user_archived_jobs_level_$1:
+		    if (job == null) {
 			return "";
 		    }
 
-		    JobProgression archivedJobProg = user.getArchivedJobProgression(j.getJob());
+		    JobProgression archivedJobProg = user.getArchivedJobProgression(job);
 		    return archivedJobProg == null ? "" : Integer.toString(archivedJobProg.getLevel());
-		case user_archived_jobs_exp:
-		    if (j == null) {
+		case user_archived_jobs_exp_$1:
+		    if (job == null)
 			return "";
-		    }
 
-		    JobProgression archivedJobProgression = user.getArchivedJobProgression(j.getJob());
-		    return archivedJobProgression == null ? "" : Double.toString(archivedJobProgression.getExperience());
+		    JobProgression archivedJobProgression = user.getArchivedJobProgression(job);
+		    return archivedJobProgression == null ? "0" : Double.toString(archivedJobProgression.getExperience());
 		default:
 		    break;
 		}

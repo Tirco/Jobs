@@ -48,8 +48,13 @@ import com.gamingmesh.jobs.listeners.JobsPaymentListener;
 import com.gamingmesh.jobs.listeners.PistonProtectionListener;
 import com.gamingmesh.jobs.selection.SelectionManager;
 import com.gamingmesh.jobs.stuff.*;
+import com.gamingmesh.jobs.stuff.complement.JobsChatEvent;
+import com.gamingmesh.jobs.stuff.complement.Complement;
+import com.gamingmesh.jobs.stuff.complement.Complement1;
+import com.gamingmesh.jobs.stuff.complement.Complement2;
 import com.gamingmesh.jobs.tasks.BufferedPaymentThread;
 import com.gamingmesh.jobs.tasks.DatabaseSaveThread;
+
 import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
@@ -72,7 +77,6 @@ public class Jobs extends JavaPlugin {
     private static Language lManager;
     private static LanguageManager lmManager;
     private static SignUtil signManager;
-    private CMIScoreboardManager cmiScoreboardManager;
     private static ScheduleManager scheduleManager;
     private static NameTranslatorManager nameTranslatorManager;
     private static GuiManager guiManager;
@@ -85,43 +89,60 @@ public class Jobs extends JavaPlugin {
     private static Loging loging;
     private static BlockProtectionManager bpManager;
     private static JobsManager dbManager;
-
-    private final Set<BlockOwnerShip> blockOwnerShips = new HashSet<>();
-
-    private static PistonProtectionListener pistonProtectionListener;
-
     private static ConfigManager configManager;
     private static GeneralConfigManager gConfigManager;
-
     private static CMIReflections reflections;
-
-    private static JobsDAO dao;
-    private static List<Job> jobs;
-    private static Job noneJob;
-    private static WeakHashMap<Job, Integer> usedSlots = new WeakHashMap<>();
-    private static HashMap<Integer, Job> jobsIds = new HashMap<>();
-
     private static BufferedEconomy economy;
     private static PermissionHandler permissionHandler;
     private static PermissionManager permissionManager;
 
+    private final Set<BlockOwnerShip> blockOwnerShips = new HashSet<>();
+
+    private CMIScoreboardManager cmiScoreboardManager;
+    private Complement complement;
+
+    private static JobsDAO dao;
+    private static List<Job> jobs;
+    private static Job noneJob;
+    private static Map<Job, Integer> usedSlots = new WeakHashMap<>();
+    private static Map<Integer, Job> jobsIds = new HashMap<>();
+
     public static BufferedPaymentThread paymentThread;
     private static DatabaseSaveThread saveTask;
 
-    public static final HashMap<UUID, FastPayment> FASTPAYMENT = new HashMap<>();
+    public static final Map<UUID, FastPayment> FASTPAYMENT = new HashMap<>();
 
     private static NMS nms;
 
     protected static VersionChecker versionCheckManager;
-
     protected static SelectionManager smanager;
 
     private static PointsData pointsDatabase;
 
+    public Complement getComplement() {
+	return complement;
+    }
+
+	/**
+     * Returns the block owner ship for specific {@link CMIMaterial} type.
+     * 
+     * @param type {@link CMIMaterial}
+     * @see #getBlockOwnerShip(CMIMaterial, boolean)
+     * @return {@link BlockOwnerShip}, otherwise {@link Optional#empty()}
+     */
     public Optional<BlockOwnerShip> getBlockOwnerShip(CMIMaterial type) {
 	return getBlockOwnerShip(type, true);
     }
 
+    /**
+     * Returns the block owner ship for specific {@link CMIMaterial} type.
+     * If the addNew parameter is enabled, it will cache a new owner ship for specific
+     * {@link CMIMaterial} type.
+     * 
+     * @param type {@link CMIMaterial}
+     * @param addNew whenever to add a new owner ship
+     * @return {@link BlockOwnerShip}, otherwise {@link Optional#empty()}
+     */
     public Optional<BlockOwnerShip> getBlockOwnerShip(CMIMaterial type, boolean addNew) {
 	BlockOwnerShip b = null;
 	for (BlockOwnerShip ship : blockOwnerShips) {
@@ -132,13 +153,18 @@ public class Jobs extends JavaPlugin {
 	}
 
 	if (addNew && b == null) {
-	    b = new BlockOwnerShip(type);
-	    blockOwnerShips.add(b);
+	    blockOwnerShips.add(b = new BlockOwnerShip(type));
 	}
 
 	return Optional.ofNullable(b);
     }
 
+    /**
+     * Returns the block owner ship for specific {@link BlockTypes} type.
+     * 
+     * @param type {@link BlockTypes}
+     * @return {@link BlockOwnerShip}, otherwise {@link Optional#empty()}
+     */
     public Optional<BlockOwnerShip> getBlockOwnerShip(BlockTypes type) {
 	for (BlockOwnerShip ship : blockOwnerShips) {
 	    if (ship.getType() == type) {
@@ -149,14 +175,11 @@ public class Jobs extends JavaPlugin {
 	return Optional.empty();
     }
 
+    /**
+     * @return a set of block owner ships.
+     */
     public Set<BlockOwnerShip> getBlockOwnerShips() {
 	return blockOwnerShips;
-    }
-
-    public static PistonProtectionListener getPistonProtectionListener() {
-	if (pistonProtectionListener == null)
-	    pistonProtectionListener = new PistonProtectionListener();
-	return pistonProtectionListener;
     }
 
     private Placeholder placeholder;
@@ -219,7 +242,7 @@ public class Jobs extends JavaPlugin {
 
     public static ShopManager getShopManager() {
 	if (shopManager == null) {
-	    shopManager = new ShopManager();
+	    shopManager = new ShopManager(instance);
 	}
 	return shopManager;
     }
@@ -241,8 +264,7 @@ public class Jobs extends JavaPlugin {
     }
 
     /**
-     * Returns player manager
-     * @return the player manager
+     * @return {@link PlayerManager}
      */
     public static PlayerManager getPlayerManager() {
 	if (pManager == null)
@@ -266,7 +288,10 @@ public class Jobs extends JavaPlugin {
 	return raManager;
     }
 
-    public static TitleManager gettitleManager() {
+    /**
+     * @return {@link TitleManager}
+     */
+    public static TitleManager getTitleManager() {
 	if (titleManager == null) {
 	    titleManager = new TitleManager();
 	}
@@ -284,7 +309,7 @@ public class Jobs extends JavaPlugin {
      */
     public static ScheduleManager getScheduleManager() {
 	if (scheduleManager == null) {
-	    scheduleManager = new ScheduleManager(getInstance());
+	    scheduleManager = new ScheduleManager(instance);
 	}
 
 	return scheduleManager;
@@ -306,7 +331,7 @@ public class Jobs extends JavaPlugin {
 
     public static JobsCommands getCommandManager() {
 	if (cManager == null) {
-	    cManager = new JobsCommands(getInstance());
+	    cManager = new JobsCommands(instance);
 	}
 	return cManager;
     }
@@ -352,7 +377,7 @@ public class Jobs extends JavaPlugin {
      */
     public static Language getLanguage() {
 	if (lManager == null)
-	    lManager = new Language(instance);
+	    lManager = new Language();
 	return lManager;
     }
 
@@ -373,7 +398,7 @@ public class Jobs extends JavaPlugin {
     }
 
     public static File getFolder() {
-	File folder = getInstance().getDataFolder();
+	File folder = instance.getDataFolder();
 	if (!folder.exists())
 	    folder.mkdirs();
 	return folder;
@@ -440,6 +465,12 @@ public class Jobs extends JavaPlugin {
 	return null;
     }
 
+    /**
+     * Returns a job by identifier.
+     * 
+     * @param id the id of job
+     * @return {@link Job}
+     */
     public static Job getJob(int id) {
 	return jobsIds.get(id);
     }
@@ -448,7 +479,10 @@ public class Jobs extends JavaPlugin {
 	return placeholderAPIEnabled;
     }
 
-    public static HashMap<Integer, Job> getJobsIds() {
+    /**
+     * @return the cached job id map.
+     */
+    public static Map<Integer, Job> getJobsIds() {
 	return jobsIds;
     }
 
@@ -465,12 +499,12 @@ public class Jobs extends JavaPlugin {
 	return CompletableFuture.supplyAsync(() -> {
 	    long time = System.currentTimeMillis();
 	    // Cloning to avoid issues
-	    HashMap<UUID, PlayerInfo> temp = new HashMap<>(getPlayerManager().getPlayersInfoUUIDMap());
-	    HashMap<Integer, List<JobsDAOData>> playersJobs = dao.getAllJobs();
-	    HashMap<Integer, PlayerPoints> playersPoints = dao.getAllPoints();
-	    HashMap<Integer, HashMap<String, Log>> playersLogs = dao.getAllLogs();
-	    HashMap<Integer, ArchivedJobs> playersArchives = dao.getAllArchivedJobs();
-	    HashMap<Integer, PaymentData> playersLimits = dao.loadPlayerLimits();
+	    Map<UUID, PlayerInfo> temp = new HashMap<>(getPlayerManager().getPlayersInfoUUIDMap());
+	    Map<Integer, List<JobsDAOData>> playersJobs = dao.getAllJobs();
+	    Map<Integer, PlayerPoints> playersPoints = dao.getAllPoints();
+	    Map<Integer, Map<String, Log>> playersLogs = dao.getAllLogs();
+	    Map<Integer, ArchivedJobs> playersArchives = dao.getAllArchivedJobs();
+	    Map<Integer, PaymentData> playersLimits = dao.loadPlayerLimits();
 	    for (Iterator<PlayerInfo> it = temp.values().iterator(); it.hasNext();) {
 		PlayerInfo one = it.next();
 		int id = one.getID();
@@ -493,27 +527,6 @@ public class Jobs extends JavaPlugin {
 	});
     }
 
-    /**
-     * Executes clean shutdown
-     */
-    public static void shutdown() {
-	if (saveTask != null)
-	    saveTask.shutdown();
-
-	if (paymentThread != null)
-	    paymentThread.shutdown();
-
-	getPlayerManager().removePlayerAdditions();
-	getPlayerManager().saveAll();
-
-	if (dao != null) {
-	    dao.closeConnections();
-	}
-    }
-
-    /**
-     * Executes close connections
-     */
     public static void convertDatabase() {
 	try {
 	    List<Convert> archivelist = dao.convertDatabase();
@@ -542,7 +555,8 @@ public class Jobs extends JavaPlugin {
     }
 
     /**
-     * Checks if player have the given {@link ActionType} in jobs.
+     * Checks if the given {@link JobsPlayer} have the given {@link ActionType} in one of jobs.
+     * 
      * @param jPlayer {@link JobsPlayer}
      * @param type {@link ActionType}
      * @return true if the player have the given action
@@ -626,7 +640,7 @@ public class Jobs extends JavaPlugin {
      * @param eco - the economy handler
      */
     public static void setEconomy(Economy eco) {
-	economy = new BufferedEconomy(getInstance(), eco);
+	economy = new BufferedEconomy(instance, eco);
     }
 
     /**
@@ -671,11 +685,8 @@ public class Jobs extends JavaPlugin {
 	placeholderAPIEnabled = setupPlaceHolderAPI();
 
 	try {
-	    YmlMaker jobShopItems = new YmlMaker(getFolder(), "shopItems.yml");
-	    jobShopItems.saveDefaultConfig();
-
-	    YmlMaker restrictedBlocks = new YmlMaker(getFolder(), "restrictedBlocks.yml");
-	    restrictedBlocks.saveDefaultConfig();
+	    new YmlMaker(getFolder(), "shopItems.yml").saveDefaultConfig();
+	    new YmlMaker(getFolder(), "restrictedBlocks.yml").saveDefaultConfig();
 
 	    bbManager = new BossBarManager(this);
 
@@ -687,8 +698,7 @@ public class Jobs extends JavaPlugin {
 	    startup();
 
 	    if (getGCManager().SignsEnabled) {
-		YmlMaker jobSigns = new YmlMaker(getFolder(), "Signs.yml");
-		jobSigns.saveDefaultConfig();
+		new YmlMaker(getFolder(), "Signs.yml").saveDefaultConfig();
 	    }
 
 	    // register the listeners
@@ -701,20 +711,34 @@ public class Jobs extends JavaPlugin {
 	    HookManager.loadHooks();
 
 	    if (getGCManager().useBlockProtection) {
-		getServer().getPluginManager().registerEvents(getPistonProtectionListener(), this);
+		PistonProtectionListener pistonProtection = new PistonProtectionListener();
+		getServer().getPluginManager().registerEvents(pistonProtection, this);
 	    }
+
+	    boolean kyoriSupported = false;
+	    try {
+		Class.forName("net.kyori.adventure.text.Component");
+		kyoriSupported = true;
+	    } catch (ClassNotFoundException e) {
+	    }
+
+	    if (Version.isCurrentEqualOrHigher(Version.v1_16_R3) && kyoriSupported) {
+		complement = new Complement2();
+		//getServer().getPluginManager().registerEvents(new KyoriChatEvent(this), this);
+	    } else {
+		complement = new Complement1();
+	    }
+	    getServer().getPluginManager().registerEvents(new JobsChatEvent(this), this);
 
 	    // register economy
 	    Bukkit.getScheduler().runTask(this, new HookEconomyTask(this));
 
 	    dao.loadBlockProtection();
 	    getExplore().load();
+	    getCommandManager().fillCommands();
+	    getDBManager().getDB().triggerTableIdUpdate();
 
 	    consoleMsg("&e[Jobs] Plugin has been enabled successfully.");
-
-	    getCommandManager().fillCommands();
-
-	    getDBManager().getDB().triggerTableIdUpdate();
 	} catch (Throwable e) {
 	    e.printStackTrace();
 	    System.out.println("There was some issues when starting plugin. Please contact dev about this. Plugin will be disabled.");
@@ -726,23 +750,25 @@ public class Jobs extends JavaPlugin {
 	reload(false);
     }
 
-    /**
-     * Reloads all data
-     */
     public static void reload(boolean startup) {
 	// unregister all registered listeners by this plugin and register again
 	if (!startup) {
-	    org.bukkit.plugin.PluginManager pm = getInstance().getServer().getPluginManager();
+	    org.bukkit.plugin.PluginManager pm = instance.getServer().getPluginManager();
+
 	    HandlerList.unregisterAll(instance);
+
 	    com.gamingmesh.jobs.CMIGUI.GUIManager.registerListener();
+
 	    pm.registerEvents(new JobsListener(instance), instance);
 	    pm.registerEvents(new JobsPaymentListener(instance), instance);
 	    if (Version.isCurrentEqualOrHigher(Version.v1_14_R1)) {
 		pm.registerEvents(new JobsPayment14Listener(), instance);
 	    }
 
-	    if (getGCManager().useBlockProtection)
-		pm.registerEvents(getPistonProtectionListener(), instance);
+	    if (getGCManager().useBlockProtection) {
+		PistonProtectionListener pistonProtection = new PistonProtectionListener();
+		pm.registerEvents(pistonProtection, instance);
+	    }
 
 	    if (HookManager.getMcMMOManager().CheckmcMMO()) {
 		HookManager.setMcMMOlistener();
@@ -754,12 +780,10 @@ public class Jobs extends JavaPlugin {
 
 	if (saveTask != null) {
 	    saveTask.shutdown();
-	    saveTask = null;
 	}
 
 	if (paymentThread != null) {
 	    paymentThread.shutdown();
-	    paymentThread = null;
 	}
 
 	smanager = new SelectionManager();
@@ -817,53 +841,111 @@ public class Jobs extends JavaPlugin {
 
 	HandlerList.unregisterAll(instance);
 
-	dao.saveExplore();
-	getBpManager().saveCache();
+	if (dao != null) {
+	    dao.saveExplore();
+	}
 
 	blockOwnerShips.forEach(BlockOwnerShip::save);
 	ToggleBarHandling.save();
 
-	shutdown();
+	if (saveTask != null)
+	    saveTask.shutdown();
+
+	if (paymentThread != null)
+	    paymentThread.shutdown();
+
+	if (pManager != null) {
+	    pManager.removePlayerAdditions();
+	    pManager.saveAll();
+	}
+
+	if (dao != null) {
+	    dao.closeConnections();
+	}
+
 	instance = null;
 	consoleMsg("&e[Jobs] &2Plugin has been disabled successfully.");
-	setEnabled(false);
     }
 
     private static void checkDailyQuests(JobsPlayer jPlayer, Job job, ActionInfo info) {
 	if (!job.getQuests().isEmpty()) {
-	    List<QuestProgression> q = jPlayer.getQuestProgressions(job, info.getType());
-	    for (QuestProgression one : q) {
-		if (one != null) {
-		    one.processQuest(jPlayer, info);
-		}
+	    for (QuestProgression one : jPlayer.getQuestProgressions(job, info.getType())) {
+		one.processQuest(jPlayer, info);
 	    }
 	}
     }
 
     /**
-     * Performed an action
+     * Perform an action for the given {@link JobsPlayer} with the given action info.
      * 
-     * Give correct experience and income
-     * @param jPlayer - the player
-     * @param info - the action
+     * @param jPlayer {@link JobsPlayer}
+     * @param info {@link ActionInfo}
+     * @see #action(JobsPlayer, ActionInfo, Block, Entity, LivingEntity)
      */
-
     public static void action(JobsPlayer jPlayer, ActionInfo info) {
 	action(jPlayer, info, null, null, null);
     }
 
+    /**
+     * Perform an action for the given {@link JobsPlayer} with the given action info and block.
+     * 
+     * @param jPlayer {@link JobsPlayer}
+     * @param info {@link ActionInfo}
+     * @param block {@link Block}
+     * @see #action(JobsPlayer, ActionInfo, Block, Entity, LivingEntity)
+     */
     public static void action(JobsPlayer jPlayer, ActionInfo info, Block block) {
 	action(jPlayer, info, block, null, null);
     }
 
+    /**
+     * Perform an action for the given {@link JobsPlayer} with the given action info and entity.
+     * 
+     * @param jPlayer {@link JobsPlayer}
+     * @param info {@link ActionInfo}
+     * @param ent {@link Entity}
+     * @see #action(JobsPlayer, ActionInfo, Block, Entity, LivingEntity)
+     */
     public static void action(JobsPlayer jPlayer, ActionInfo info, Entity ent) {
 	action(jPlayer, info, null, ent, null);
     }
 
+    /**
+     * Perform an action for the given {@link JobsPlayer} with the given action info,
+     * entity and living entity.
+     * 
+     * @param jPlayer {@link JobsPlayer}
+     * @param info {@link ActionInfo}
+     * @param ent {@link Entity}
+     * @param victim {@link LivingEntity}
+     * @see #action(JobsPlayer, ActionInfo, Block, Entity, LivingEntity)
+     */
     public static void action(JobsPlayer jPlayer, ActionInfo info, Entity ent, LivingEntity victim) {
 	action(jPlayer, info, null, ent, victim);
     }
 
+    /**
+     * Perform an action for the given {@link JobsPlayer} with the parameters.
+     * <p>
+     * The process:
+     * <p>
+     * If the player does not have any job progression cached into memory, the player
+     * only retrieve the "noneJob" by default. This means that there will be no any
+     * extra income calculations and the player does no get the full income from jobs,
+     * but the half of it.<br>
+     * In other cases if player have at least 1 job cached, they will get the full income
+     * with the extra calculated multiplications including bonuses and limits.
+     * <p>
+     * 
+     * <b>This usually not be called in your code, to avoid misbehaviour working ability.</b>
+     * 
+     * @param jPlayer {@link JobsPlayer}
+     * @param info {@link ActionInfo}
+     * @param ent {@link Entity}
+     * @param victim {@link LivingEntity}
+     * @param block {@link Block}
+     * @see #action(JobsPlayer, ActionInfo, Block, Entity, LivingEntity)
+     */
     public static void action(JobsPlayer jPlayer, ActionInfo info, Block block, Entity ent, LivingEntity victim) {
 	if (jPlayer == null)
 	    return;
@@ -957,7 +1039,7 @@ public class Jobs extends JavaPlugin {
 	    if (pointAmount != 0D)
 		jPlayer.setSaved(false);
 
-	    HashMap<CurrencyType, Double> payments = new HashMap<>();
+	    Map<CurrencyType, Double> payments = new HashMap<>();
 	    if (income != 0D)
 		payments.put(CurrencyType.MONEY, income);
 	    if (pointAmount != 0D)
@@ -966,7 +1048,7 @@ public class Jobs extends JavaPlugin {
 	    economy.pay(jPlayer, payments);
 
 	    if (gConfigManager.LoggingUse) {
-		HashMap<CurrencyType, Double> amounts = new HashMap<>();
+		Map<CurrencyType, Double> amounts = new HashMap<>();
 		amounts.put(CurrencyType.MONEY, income);
 		getLoging().recordToLog(jPlayer, info, amounts);
 	    }
@@ -994,9 +1076,9 @@ public class Jobs extends JavaPlugin {
 		    continue;
 		}
 
-		Double income = jobinfo.getIncome(level, numjobs, jPlayer.maxJobsEquation);
-		Double pointAmount = jobinfo.getPoints(level, numjobs, jPlayer.maxJobsEquation);
-		Double expAmount = jobinfo.getExperience(level, numjobs, jPlayer.maxJobsEquation);
+		double income = jobinfo.getIncome(level, numjobs, jPlayer.maxJobsEquation);
+		double pointAmount = jobinfo.getPoints(level, numjobs, jPlayer.maxJobsEquation);
+		double expAmount = jobinfo.getExperience(level, numjobs, jPlayer.maxJobsEquation);
 
 		if (income == 0D && pointAmount == 0D && expAmount == 0D)
 		    continue;
@@ -1010,10 +1092,10 @@ public class Jobs extends JavaPlugin {
 			 * That way jobs that give fractions of experience points will slowly give
 			 * experience in the aggregate
 			 */
-			int expInt = expAmount.intValue();
-			double remainder = expAmount.doubleValue() - expInt;
+			int expInt = (int) expAmount;
+			double remainder = expAmount - expInt;
 			if (Math.abs(remainder) > Math.random()) {
-			    if (expAmount.doubleValue() < 0)
+			    if (expAmount < 0)
 				expInt--;
 			    else
 				expInt++;
@@ -1117,7 +1199,7 @@ public class Jobs extends JavaPlugin {
 		    consoleMsg("&c[Jobs] Some issues with boss bar feature accured, try disabling it to avoid it.");
 		}
 
-		HashMap<CurrencyType, Double> payments = new HashMap<>();
+		Map<CurrencyType, Double> payments = new HashMap<>();
 		if (income != 0D)
 		    payments.put(CurrencyType.MONEY, income);
 		if (pointAmount != 0D)
@@ -1132,7 +1214,7 @@ public class Jobs extends JavaPlugin {
 		int oldLevel = prog.getLevel();
 
 		if (gConfigManager.LoggingUse) {
-		    HashMap<CurrencyType, Double> amounts = new HashMap<>();
+		    Map<CurrencyType, Double> amounts = new HashMap<>();
 		    amounts.put(CurrencyType.MONEY, income);
 		    amounts.put(CurrencyType.EXP, expAmount);
 		    amounts.put(CurrencyType.POINTS, pointAmount);
@@ -1274,7 +1356,6 @@ public class Jobs extends JavaPlugin {
     }
 
     public static void perform(JobsPlayer jPlayer, ActionInfo info, BufferedPayment payment, Job job) {
-	// JobsPayment event
 	JobsExpGainEvent jobsExpGainEvent = new JobsExpGainEvent(payment.getOfflinePlayer(), job, payment.get(CurrencyType.EXP));
 	Bukkit.getServer().getPluginManager().callEvent(jobsExpGainEvent);
 	// If event is canceled, don't do anything

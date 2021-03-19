@@ -10,9 +10,11 @@ import com.gamingmesh.jobs.dao.JobsManager.DataBaseType;
 
 public class JobsMySQL extends JobsDAO {
 
-    JobsMySQL(Jobs plugin, String hostname, String database, String username, String password, String prefix, boolean certificate, boolean ssl, boolean autoReconnect) {
+    JobsMySQL(Jobs plugin, String hostname, String database, String username, String password, String prefix, boolean certificate, boolean ssl, boolean autoReconnect,
+        String characterEncoding, String encoding) {
 	super(plugin, "com.mysql.jdbc.Driver", "jdbc:mysql://" + hostname + "/" + database
-	    + "?maxReconnects=1&useUnicode=true&characterEncoding=utf8&autoReconnect=" + autoReconnect + "&useSSL=" + ssl
+	    + "?maxReconnects=1&characterEncoding=" + characterEncoding + "&encoding="
+	    + encoding + "&useUnicode=true&autoReconnect=" + autoReconnect + "&useSSL=" + ssl
 	    + "&verifyServerCertificate=" + certificate, username, password, prefix);
 	setDbType(DataBaseType.MySQL);
     }
@@ -21,8 +23,10 @@ public class JobsMySQL extends JobsDAO {
 	setUp();
     }
 
-    public JobsMySQL initialize(Jobs plugin, String hostname, String database, String username, String password, String prefix, boolean certificate, boolean ssl, boolean autoReconnect) {
-	JobsMySQL dao = new JobsMySQL(plugin, hostname, database, username, password, prefix, certificate, ssl, autoReconnect);
+    public JobsMySQL initialize(Jobs plugin, String hostname, String database, String username, String password, String prefix, boolean certificate, boolean ssl, boolean autoReconnect,
+        String characterEncoding, String encoding) {
+	JobsMySQL dao = new JobsMySQL(plugin, hostname, database, username, password, prefix, certificate, ssl, autoReconnect,
+		characterEncoding, encoding);
 	dao.setUp();
 	return dao;
     }
@@ -44,18 +48,17 @@ public class JobsMySQL extends JobsDAO {
 	JobsConnection conn = getConnection();
 	if (conn == null)
 	    return null;
-	PreparedStatement prest = null;
+
 	try {
-	    prest = conn.prepareStatement(query);
+	    return conn.prepareStatement(query);
 	} catch (SQLException | NumberFormatException e) {
 	    e.printStackTrace();
 	}
-	return prest;
+	return null;
     }
 
     @Override
     public boolean createTable(String query) {
-	Statement statement = null;
 	if (query == null || query.isEmpty()) {
 	    Jobs.consoleMsg("&cCould not create table: query is empty or null.");
 	    return false;
@@ -63,6 +66,7 @@ public class JobsMySQL extends JobsDAO {
 	JobsConnection conn = getConnection();
 	if (conn == null)
 	    return false;
+	Statement statement = null;
 	try {
 	    statement = conn.createStatement();
 	    statement.execute(query);
@@ -77,16 +81,10 @@ public class JobsMySQL extends JobsDAO {
 
     @Override
     public boolean isTable(String table) {
-	Statement statement;
 	JobsConnection conn = getConnection();
 	if (conn == null)
 	    return false;
-	try {
-	    statement = conn.createStatement();
-	} catch (SQLException e) {
-	    Jobs.consoleMsg("&cCould not check if its table, SQLException: " + e.getMessage());
-	    return false;
-	}
+
 	try {
 	    ResultSet tables = conn.getMetaData().getTables(null, null, table, null);
 	    if (tables.next()) {
@@ -97,8 +95,8 @@ public class JobsMySQL extends JobsDAO {
 	    return false;
 	} catch (SQLException e) {
 	    Jobs.consoleMsg("Not a table |" + "SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME ='" + table + "';" + "|");
-	    close(statement);
 	}
+
 	PreparedStatement insert = null;
 	ResultSet res = null;
 	try {
@@ -107,16 +105,15 @@ public class JobsMySQL extends JobsDAO {
 	    if (res.next()) {
 		close(res);
 		close(insert);
-		close(statement);
 		return true;
 	    }
 	} catch (SQLException e) {
 	    Jobs.consoleMsg("Not a table |" + "SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME ='" + table + "';" + "|");
 	} finally {
+	    close(res);
+	    close(insert);
 	}
-	close(res);
-	close(insert);
-	close(statement);
+
 	return false;
     }
 
@@ -169,8 +166,7 @@ public class JobsMySQL extends JobsDAO {
 		return false;
 	    }
 	    statement = getConnection().createStatement();
-	    String query = "DELETE FROM " + table + ";";
-	    statement.executeUpdate(query);
+	    statement.executeUpdate("DELETE FROM " + table + ";");
 	    return true;
 	} catch (SQLException e) {
 	    Jobs.consoleMsg("&cCould not wipe table, SQLException: " + e.getMessage());
@@ -184,15 +180,13 @@ public class JobsMySQL extends JobsDAO {
     @Override
     public boolean drop(String table) {
 	Statement statement = null;
-	String query = null;
 	try {
 	    if (!isTable(table)) {
 		Jobs.consoleMsg("&cTable \"" + table + "\" does not exist.");
 		return false;
 	    }
 	    statement = getConnection().createStatement();
-	    query = "DROP TABLE IF EXISTS `" + table + "`;";
-	    statement.executeUpdate(query);
+	    statement.executeUpdate("DROP TABLE IF EXISTS `" + table + "`;");
 	    return true;
 	} catch (SQLException e) {
 	    Jobs.consoleMsg("&cCould not wipe table, SQLException: " + e.getMessage());

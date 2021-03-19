@@ -1,7 +1,6 @@
 package com.gamingmesh.jobs.commands.list;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -10,7 +9,6 @@ import org.bukkit.entity.Player;
 
 import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.commands.Cmd;
-import com.gamingmesh.jobs.commands.JobCommand;
 import com.gamingmesh.jobs.container.JobProgression;
 import com.gamingmesh.jobs.container.JobsPlayer;
 import com.gamingmesh.jobs.container.QuestObjective;
@@ -21,7 +19,6 @@ import com.gamingmesh.jobs.CMILib.RawMessage;
 public class quests implements Cmd {
 
     @Override
-    @JobCommand(400)
     public boolean perform(Jobs plugin, final CommandSender sender, String[] args) {
 	JobsPlayer jPlayer = null;
 
@@ -106,7 +103,7 @@ public class quests implements Cmd {
 		    }
 		}
 
-		for (HashMap<String, QuestObjective> oneAction : q.getQuest().getObjectives().values()) {
+		for (java.util.Map<String, QuestObjective> oneAction : q.getQuest().getObjectives().values()) {
 		    for (Entry<String, QuestObjective> oneObjective : oneAction.entrySet()) {
 			hoverList.add(Jobs.getLanguage().getMessage("command.info.output." + oneObjective.getValue().getAction().toString().toLowerCase() + ".info") + " " +
 			    Jobs.getNameTranslatorManager().Translate(oneObjective.getKey(), oneObjective.getValue().getAction(), oneObjective.getValue().getTargetId(), oneObjective.getValue()

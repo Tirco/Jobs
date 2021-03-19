@@ -5,7 +5,6 @@ import org.bukkit.entity.Player;
 
 import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.commands.Cmd;
-import com.gamingmesh.jobs.commands.JobCommand;
 import com.gamingmesh.jobs.container.Job;
 import com.gamingmesh.jobs.container.JobsPlayer;
 import com.gamingmesh.jobs.stuff.Util;
@@ -13,7 +12,6 @@ import com.gamingmesh.jobs.stuff.Util;
 public class leave implements Cmd {
 
     @Override
-    @JobCommand(800)
     public boolean perform(Jobs plugin, final CommandSender sender, final String[] args) {
 	if (!(sender instanceof Player))
 	    return false;
@@ -43,7 +41,7 @@ public class leave implements Cmd {
 		Util.LEAVECONFIRM.add(uuid);
 
 		plugin.getServer().getScheduler().runTaskLater(plugin, () -> Util.LEAVECONFIRM.remove(uuid),
-		    (long) (20 * Jobs.getGCManager().ConfirmExpiryTime));
+		    20 * Jobs.getGCManager().ConfirmExpiryTime);
 
 		pSender.sendMessage(Jobs.getLanguage().getMessage("command.leave.confirmationNeed", "[jobname]",
 		    job.getNameWithColor(), "[time]", Jobs.getGCManager().ConfirmExpiryTime));

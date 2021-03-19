@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.bukkit.enchantments.Enchantment;
 
@@ -50,19 +51,20 @@ public enum CMIEnchantment {
     UNBREAKING("DURABILITY"),
     VANISHING_CURSE;
 
-    private static HashMap<String, CMIEnchantment> map = new HashMap<>();
-    private static HashMap<Enchantment, CMIEnchantment> emap = new HashMap<>();
+    private static Map<String, CMIEnchantment> map = new HashMap<>();
+    private static Map<Enchantment, CMIEnchantment> emap = new HashMap<>();
+    private static Map<String, Enchantment> gmap = new HashMap<>();
 
     private List<String> subName = new ArrayList<>();
     private List<String> customNames = new ArrayList<>();
     private Enchantment enchantment;
 
-	@SuppressWarnings("deprecation")
-	CMIEnchantment(String... subName) {
+    @SuppressWarnings("deprecation")
+    CMIEnchantment(String... subName) {
 	if (subName != null)
 	    this.subName.addAll(Arrays.asList(subName));
 
-	String temp = this.toString().toLowerCase().replace("_", "");
+	String temp = toString().toLowerCase().replace("_", "");
 
 	for (Enchantment one : Enchantment.values()) {
 	    try {
@@ -96,10 +98,10 @@ public enum CMIEnchantment {
 	    en: for (Enchantment one : Enchantment.values()) {
 		for (String subs : this.subName) {
 		    try {
-		    if (one.getName().toLowerCase().replace("_", "").equalsIgnoreCase(subs.toLowerCase().replace("_", ""))) {
-			enchantment = one;
-		    break en;
-		    }
+			if (one.getName().toLowerCase().replace("_", "").equalsIgnoreCase(subs.toLowerCase().replace("_", ""))) {
+			    enchantment = one;
+			    break en;
+			}
 		    } catch (Exception | Error e) {
 			try {
 			    if (one.getKey().toString().split(":")[1].toLowerCase().replace("_", "").equalsIgnoreCase(temp)) {
@@ -118,7 +120,7 @@ public enum CMIEnchantment {
 		for (String subs : this.subName) {
 		    if (one.toString().toLowerCase().replace("_", "").equalsIgnoreCase(subs.toLowerCase().replace("_", ""))) {
 			enchantment = one;
-		    break o;
+			break o;
 		    }
 		}
 	    }
@@ -143,6 +145,15 @@ public enum CMIEnchantment {
 	    }
 	    emap.put(one.getEnchantment(), one);
 	}
+	try {
+	    for (Enchantment one : Enchantment.values()) {
+		String name = one.getKey().getKey().toLowerCase().replace("_", "").replace("minecraft:", "");
+		if (!map.containsKey(name)) {
+		    gmap.put(name, one);
+		}
+	    }
+	} catch (Throwable e) {
+	}
     }
 
     public static CMIEnchantment get(String name) {
@@ -157,11 +168,17 @@ public enum CMIEnchantment {
     public static Enchantment getEnchantment(String name) {
 	if (map.isEmpty())
 	    fillUpMap();
-
 	name = name.contains(":") ? name.split(":")[0] : name.contains("-") ? name.split("-")[0] : name;
 	name = name.toLowerCase().replace("_", "");
 
 	CMIEnchantment ec = map.get(name);
+
+	if (ec == null) {
+	    Enchantment enchant = gmap.get(name);
+	    if (enchant != null)
+		return enchant;
+	}
+
 	return ec == null ? null : ec.getEnchantment();
     }
 
@@ -191,7 +208,7 @@ public enum CMIEnchantment {
     }
 
     public String getName() {
-	return Util.firstToUpperCase(this.toString().replace("_", " "));
+	return Util.firstToUpperCase(toString().replace('_', ' '));
     }
 
     public static String getName(Enchantment enchant) {

@@ -9,6 +9,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.UUID;
@@ -22,6 +23,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.potion.PotionType;
 import org.bukkit.util.BlockIterator;
 
 import com.gamingmesh.jobs.Jobs;
@@ -30,11 +32,10 @@ import com.gamingmesh.jobs.container.JobsWorld;
 
 public class Util {
 
-    private static HashMap<UUID, String> jobsEditorMap = new HashMap<>();
-    private static HashMap<UUID, String> questsEditorMap = new HashMap<>();
+    private static Map<UUID, String> jobsEditorMap = new HashMap<>(), questsEditorMap = new HashMap<>();
 
-    private static HashMap<String, JobsWorld> jobsWorlds = new HashMap<>();
-    private static HashMap<Integer, JobsWorld> jobsWorldsId = new HashMap<>();
+    private static Map<String, JobsWorld> jobsWorlds = new HashMap<>();
+    private static Map<Integer, JobsWorld> jobsWorldsId = new HashMap<>();
 
     public static final List<UUID> LEAVECONFIRM = new ArrayList<>();
 
@@ -68,15 +69,26 @@ public class Util {
 	return null;
     }
 
-    public static String firstToUpperCase(String name) {
-	return name.toLowerCase().replace('_', ' ').substring(0, 1).toUpperCase() + name.toLowerCase().replace('_', ' ').substring(1);
+    public static PotionType getPotionByName(String name) {
+	for (PotionType one : PotionType.values()) {
+	    if (one.toString().equalsIgnoreCase(name)) {
+		return one;
+	    }
+	}
+
+	return null;
     }
 
-    public static HashMap<UUID, String> getJobsEditorMap() {
+    public static String firstToUpperCase(String name) {
+	name = name.toLowerCase().replace('_', ' ');
+	return name.substring(0, 1).toUpperCase() + name.substring(1);
+    }
+
+    public static Map<UUID, String> getJobsEditorMap() {
 	return jobsEditorMap;
     }
 
-    public static HashMap<UUID, String> getQuestsEditorMap() {
+    public static Map<UUID, String> getQuestsEditorMap() {
 	return questsEditorMap;
     }
 
@@ -98,7 +110,7 @@ public class Util {
 	if (distance < 1)
 	    distance = 1;
 
-	ArrayList<Block> blocks = new ArrayList<>();
+	List<Block> blocks = new ArrayList<>();
 
 	try {
 	    Block bl = player.getTargetBlock(null, distance);
@@ -182,7 +194,7 @@ public class Util {
 	return jobsWorldsId.get(id);
     }
 
-    public static HashMap<String, JobsWorld> getJobsWorlds() {
+    public static Map<String, JobsWorld> getJobsWorlds() {
 	return jobsWorlds;
     }
 
@@ -195,10 +207,6 @@ public class Util {
 
     public static List<String> getFilesFromPackage(String pckgname) throws ClassNotFoundException {
 	return getFilesFromPackage(pckgname, null, "class");
-    }
-
-    public static List<String> getFilesFromPackage(String pckgname, String cleaner) throws ClassNotFoundException {
-	return getFilesFromPackage(pckgname, cleaner, "class");
     }
 
     public static List<String> getFilesFromPackage(String pckgname, String cleaner, String fileType) throws ClassNotFoundException {
@@ -223,8 +231,7 @@ public class Util {
 	    jarFile = new JarFile(jarPath);
 	    Enumeration<JarEntry> en = jarFile.entries();
 	    while (en.hasMoreElements()) {
-		JarEntry entry = en.nextElement();
-		String entryName = entry.getName();
+		String entryName = en.nextElement().getName();
 
 		packageName = packageName.replace('.', '/');
 

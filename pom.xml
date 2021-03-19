@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>Jobs</groupId>
 	<artifactId>jobs</artifactId>
-	<version>4.16.3</version>
+	<version>4.17.1</version>
 	<name>Jobs</name>
 	<url>http://maven.apache.org</url>
 
@@ -14,20 +14,41 @@
 	</properties>
 
 	<dependencies>
-		<!-- Spigot -->
 		<dependency>
-			<groupId>org.spigotmc</groupId>
-			<artifactId>spigot-api</artifactId>
-			<version>1.16.4-R0.1-SNAPSHOT</version>
+			<groupId>com.destroystokyo.paper</groupId>
+			<artifactId>paper-api</artifactId>
+			<version>1.16.5-R0.1-SNAPSHOT</version>
 			<scope>provided</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>org.ow2.asm</groupId>
+					<artifactId>asm-commons</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.google.code.findbugs</groupId>
+					<artifactId>jsr305</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.googlecode.json-simple</groupId>
+					<artifactId>json-simple</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.ow2.asm</groupId>
+					<artifactId>asm</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- McMMO -->
 		<dependency>
 			<groupId>com.gmail.nossr50.mcMMO</groupId>
 			<artifactId>mcMMO</artifactId>
-			<version>2.1.2</version>
+			<version>2.1.175-SNAPSHOT</version>
 			<scope>system</scope>
-			<systemPath>${basedir}/libs/mcMMO2.1.2.jar</systemPath>
+			<systemPath>${basedir}/libs/mcMMO-2.1.175-SNAPSHOT.jar</systemPath>
 		</dependency>
 		<!-- Vault -->
 		<dependency>
@@ -156,9 +177,11 @@
 		</dependency>
 		<!-- WildStacker -->
 		<dependency>
-			<groupId>com.github.OmerBenGera</groupId>
+			<groupId>com.bgsoftware</groupId>
 			<artifactId>WildStackerAPI</artifactId>
-			<version>master-SNAPSHOT</version>
+			<version>latest</version>
+			<scope>system</scope>
+			<systemPath>${basedir}/libs/WildStackerAPI-latest.jar</systemPath>
 		</dependency>
 		<!-- StackMob -->
 		<dependency>
@@ -176,11 +199,6 @@
 		</dependency>
 	</dependencies>
 	<repositories>
-		<!-- Spigot -->
-		<repository>
-			<id>spigot-repo</id>
-			<url>https://hub.spigotmc.org/nexus/content/groups/public/</url>
-		</repository>
 		<!-- Vault -->
 		<repository>
 			<id>vault-repo</id>
@@ -244,7 +262,7 @@
 <!-- 				<artifactId>maven-jar-plugin</artifactId> -->
 <!-- 				<version>2.3.1</version> -->
 <!-- 				<configuration> -->
-<!-- 					<outputDirectory>C:\Users\Arte\Desktop\Server 1.16\plugins\</outputDirectory> -->
+<!-- 					<outputDirectory>D:\MC\Server 1.16\plugins\</outputDirectory> -->
 <!-- 				</configuration> -->
 <!-- 			</plugin> -->
 		</plugins>

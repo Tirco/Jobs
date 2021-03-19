@@ -10,7 +10,6 @@ import org.bukkit.command.CommandSender;
 
 import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.commands.Cmd;
-import com.gamingmesh.jobs.commands.JobCommand;
 import com.gamingmesh.jobs.container.CurrencyType;
 import com.gamingmesh.jobs.container.JobsPlayer;
 import com.gamingmesh.jobs.container.Log;
@@ -22,7 +21,6 @@ import com.gamingmesh.jobs.stuff.TimeManage;
 public class glog implements Cmd {
 
     @Override
-    @JobCommand(1200)
     public boolean perform(Jobs plugin, final CommandSender sender, final String[] args) {
 	if (args.length != 0) {
 	    Jobs.getCommandManager().sendUsage(sender, "glog");
@@ -48,7 +46,7 @@ public class glog implements Cmd {
 		    if (jPlayer == null)
 			continue;
 
-		    HashMap<String, Log> logList = jPlayer.getLog();
+		    Map<String, Log> logList = jPlayer.getLog();
 		    if (logList == null || logList.isEmpty())
 			continue;
 
@@ -116,7 +114,6 @@ public class glog implements Cmd {
 		    "%exp%", format.format(totalExp), "%points%", format.format(totalPoints)));
 
 		sender.sendMessage(Jobs.getLanguage().getMessage("command.glog.output.bottomline"));
-		return;
 	    }
 	});
 	return true;

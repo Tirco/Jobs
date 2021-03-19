@@ -1,6 +1,7 @@
 package com.gamingmesh.jobs.container;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 
 public final class LogAmounts {
@@ -11,7 +12,7 @@ public final class LogAmounts {
     private String item;
     private int count = 0;
 
-    private HashMap<CurrencyType, Double> amounts = new HashMap<>();
+    private Map<CurrencyType, Double> amounts = new HashMap<>();
 
     private boolean newEntry = true;
 
@@ -31,7 +32,7 @@ public final class LogAmounts {
 	return item;
     }
 
-    public void add(HashMap<CurrencyType, Double> amounts) {
+    public void add(Map<CurrencyType, Double> amounts) {
 	for (Entry<CurrencyType, Double> one : amounts.entrySet()) {
 	    add(one.getKey(), one.getValue());
 	}
@@ -41,13 +42,11 @@ public final class LogAmounts {
 	if (amount == null)
 	    return;
 
-	Double a = amounts.getOrDefault(type, 0D);
-	amounts.put(type, a + amount);
+	amounts.put(type, amounts.getOrDefault(type, 0D) + amount);
     }
 
-    public Double get(CurrencyType type) {
-	Double a = amounts.getOrDefault(type, 0D);
-	return ((int) (a * 100D)) / 100D;
+    public double get(CurrencyType type) {
+	return ((int) (amounts.getOrDefault(type, 0D) * 100D)) / 100D;
     }
 
     public void addCount() {

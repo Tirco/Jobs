@@ -21,6 +21,7 @@ package com.gamingmesh.jobs.container;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import org.bukkit.enchantments.Enchantment;
@@ -28,54 +29,94 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.potion.PotionEffectType;
 
 import com.gamingmesh.jobs.CMILib.CMIChatColor;
 import com.gamingmesh.jobs.CMILib.CMIMaterial;
 import com.gamingmesh.jobs.CMILib.CMIReflections;
+import com.gamingmesh.jobs.CMILib.Version;
 
+@SuppressWarnings("deprecation")
 public class JobItems {
+
     private String node;
-    private String legacyKey = null;
+    private String legacyKey;
     private ItemStack item;
-    private HashMap<Enchantment, Integer> enchants;
+
+    private Object potion;
+
+    private final Map<Enchantment, Integer> enchants = new HashMap<>();
     private BoostMultiplier boostMultiplier = new BoostMultiplier();
-    private List<Job> jobs = new ArrayList<>();
+
+    private final List<Job> jobs = new ArrayList<>();
+
     private int fromLevel = 0;
     private int untilLevel = Integer.MAX_VALUE;
 
     public JobItems(String node, CMIMaterial mat, int amount, String name, List<String> lore, HashMap<Enchantment, Integer> enchants, BoostMultiplier boostMultiplier, List<Job> jobs) {
-	mat = mat == null ? CMIMaterial.STONE : mat;
+	this(node, mat, amount, name, lore, enchants, boostMultiplier, jobs, null);
+    }
 
-	this.enchants = enchants;
-	item = mat.newItemStack();
-
-	ItemMeta meta = item.getItemMeta();
-
-	if (name != null)
-	    meta.setDisplayName(CMIChatColor.translate(name));
-	if (lore != null)
-	    meta.setLore(lore);
-
-	if (enchants != null) {
-	    if (mat == CMIMaterial.ENCHANTED_BOOK) {
-		EnchantmentStorageMeta bookMeta = (EnchantmentStorageMeta) meta;
-		for (Entry<Enchantment, Integer> oneEnch : enchants.entrySet()) {
-		    bookMeta.addStoredEnchant(oneEnch.getKey(), oneEnch.getValue(), true);
-		}
-	    } else {
-		for (Entry<Enchantment, Integer> oneEnchant : enchants.entrySet()) {
-		    meta.addEnchant(oneEnchant.getKey(), oneEnchant.getValue(), true);
-		}
-	    }
+    public JobItems(String node, CMIMaterial mat, int amount, String name, List<String> lore, Map<Enchantment, Integer> enchants, BoostMultiplier boostMultiplier, List<Job> jobs,
+    Object potion) {
+	if (mat == null) {
+	    mat = CMIMaterial.STONE;
 	}
 
-	item.setItemMeta(meta);
-	item.setAmount(amount);
-	item = CMIReflections.setNbt(item, "JobsItemBoost", node);
+	if (enchants != null) {
+	    this.enchants.putAll(enchants);
+	}
 
 	this.node = node;
-	this.boostMultiplier = boostMultiplier;
+
+	if (boostMultiplier != null) {
+	    this.boostMultiplier = boostMultiplier;
+	}
+
 	setJobs(jobs);
+
+	ItemMeta meta = (item = mat.newItemStack()).getItemMeta();
+	if (CMIMaterial.isPotion(mat.getMaterial()) && potion != null && meta instanceof PotionMeta) {
+	    PotionMeta potionMeta = (PotionMeta) meta;
+
+	    if (Version.isCurrentEqualOrHigher(Version.v1_10_R1) && potion instanceof org.bukkit.potion.PotionData) {
+		potionMeta.setBasePotionData((org.bukkit.potion.PotionData) potion);
+	    } else if (potion instanceof org.bukkit.potion.Potion) {
+		PotionEffectType effectType = ((org.bukkit.potion.Potion) potion).getType().getEffectType();
+		if (effectType != null) {
+		    potionMeta.setMainEffect(effectType);
+		}
+	    }
+
+	    meta = potionMeta;
+	}
+
+	if (meta != null) {
+	    if (name != null)
+		meta.setDisplayName(CMIChatColor.translate(name));
+
+	    if (lore != null)
+		meta.setLore(lore);
+
+	    if (enchants != null) {
+		if (mat == CMIMaterial.ENCHANTED_BOOK) {
+		    EnchantmentStorageMeta bookMeta = (EnchantmentStorageMeta) meta;
+		    for (Entry<Enchantment, Integer> oneEnch : enchants.entrySet()) {
+			bookMeta.addStoredEnchant(oneEnch.getKey(), oneEnch.getValue(), true);
+		    }
+		} else {
+		    for (Entry<Enchantment, Integer> oneEnchant : enchants.entrySet()) {
+			meta.addEnchant(oneEnchant.getKey(), oneEnchant.getValue(), true);
+		    }
+		}
+	    }
+
+	    item.setItemMeta(meta);
+	}
+
+	item.setAmount(amount);
+	item = CMIReflections.setNbt(item, "JobsItemBoost", node);
     }
 
     public String getNode() {
@@ -88,6 +129,25 @@ public class JobItems {
 
 	ItemStack item = this.item.clone();
 	ItemMeta meta = item.getItemMeta();
+	if (meta == null) {
+	    return item;
+	}
+
+	if (CMIMaterial.isPotion(item.getType()) && potion != null && meta instanceof PotionMeta) {
+	    PotionMeta potionMeta = (PotionMeta) meta;
+
+	    if (Version.isCurrentEqualOrHigher(Version.v1_10_R1) && potion instanceof org.bukkit.potion.PotionData) {
+		potionMeta.setBasePotionData((org.bukkit.potion.PotionData) potion);
+	    } else if (potion instanceof org.bukkit.potion.Potion) {
+		PotionEffectType effectType = ((org.bukkit.potion.Potion) potion).getType().getEffectType();
+		if (effectType != null) {
+		    potionMeta.setMainEffect(effectType);
+		}
+	    }
+
+	    meta = potionMeta;
+	}
+
 	if (meta.hasDisplayName())
 	    meta.setDisplayName(CMIChatColor.translate(meta.getDisplayName().replace("[player]", player.getName())));
 
@@ -133,10 +193,11 @@ public class JobItems {
     }
 
     public void setJobs(List<Job> jobs) {
-	this.jobs = jobs == null ? new ArrayList<>() : jobs;
+	this.jobs.clear();
+	this.jobs.addAll(jobs);
     }
 
-    public HashMap<Enchantment, Integer> getEnchants() {
+    public Map<Enchantment, Integer> getEnchants() {
 	return enchants;
     }
 

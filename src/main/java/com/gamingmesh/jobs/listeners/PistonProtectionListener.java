@@ -16,15 +16,9 @@ import com.gamingmesh.jobs.Jobs;
 public class PistonProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void OnBlockMove(BlockPistonExtendEvent event) {
-	if (event.isCancelled())
-	    return;
-
-	//disabling plugin in world
-	if (!Jobs.getGCManager().canPerformActionInWorld(event.getBlock().getWorld()))
-	    return;
-
-	if (!Jobs.getGCManager().useBlockProtection)
+    public void onBlockMove(BlockPistonExtendEvent event) {
+	if (event.isCancelled() || !Jobs.getGCManager().canPerformActionInWorld(event.getBlock().getWorld())
+	    || !Jobs.getGCManager().useBlockProtection)
 	    return;
 
 	BlockFace dir = event.getDirection();
@@ -33,8 +27,7 @@ public class PistonProtectionListener implements Listener {
 	    z = dir.getModZ();
 
 	for (int i = event.getBlocks().size() - 1; i >= 0; i--) {
-	    Block one = event.getBlocks().get(i);
-	    Location oldLoc = one.getLocation();
+	    Location oldLoc = event.getBlocks().get(i).getLocation();
 	    Location newLoc = oldLoc.clone().add(x, y, z);
 	    Long bp = Jobs.getBpManager().getTime(oldLoc);
 	    if (bp != null) {
@@ -45,15 +38,9 @@ public class PistonProtectionListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void OnBlockRetractMove(BlockPistonRetractEvent event) {
-	if (event.isCancelled())
-	    return;
-
-	//disabling plugin in world
-	if (!Jobs.getGCManager().canPerformActionInWorld(event.getBlock().getWorld()))
-	    return;
-
-	if (!Jobs.getGCManager().useBlockProtection)
+    public void onBlockRetractMove(BlockPistonRetractEvent event) {
+	if (event.isCancelled() || !Jobs.getGCManager().canPerformActionInWorld(event.getBlock().getWorld())
+	    || !Jobs.getGCManager().useBlockProtection)
 	    return;
 
 	BlockFace dir = event.getDirection();
@@ -63,8 +50,7 @@ public class PistonProtectionListener implements Listener {
 
 	List<Block> blocks = Jobs.getNms().getPistonRetractBlocks(event);
 	for (int i = blocks.size() - 1; i >= 0; i--) {
-	    Block one = blocks.get(i);
-	    Location oldLoc = one.getLocation();
+	    Location oldLoc = blocks.get(i).getLocation();
 	    Location newLoc = oldLoc.clone().add(x, y, z);
 	    Long bp = Jobs.getBpManager().getTime(oldLoc);
 	    if (bp != null) {

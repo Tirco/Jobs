@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
@@ -17,6 +18,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.potion.Potion;
+import org.bukkit.potion.PotionData;
+import org.bukkit.potion.PotionType;
 
 import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.CMIGUI.CMIGui;
@@ -26,6 +30,7 @@ import com.gamingmesh.jobs.CMIGUI.GUIManager.GUIRows;
 import com.gamingmesh.jobs.CMILib.CMIChatColor;
 import com.gamingmesh.jobs.CMILib.CMIEnchantment;
 import com.gamingmesh.jobs.CMILib.CMIMaterial;
+import com.gamingmesh.jobs.CMILib.Version;
 import com.gamingmesh.jobs.container.BoostMultiplier;
 import com.gamingmesh.jobs.container.Job;
 import com.gamingmesh.jobs.container.JobItems;
@@ -35,9 +40,16 @@ import com.gamingmesh.jobs.container.PlayerPoints;
 import com.gamingmesh.jobs.container.ShopItem;
 import com.gamingmesh.jobs.stuff.GiveItem;
 
+@SuppressWarnings("deprecation")
 public class ShopManager {
 
+    private Jobs plugin;
+
     private final List<ShopItem> list = new ArrayList<>();
+
+    public ShopManager(Jobs plugin) {
+	this.plugin = plugin;
+    }
 
     public List<ShopItem> getShopItemList() {
 	return list;
@@ -111,7 +123,7 @@ public class ShopManager {
 
 	for (int i = 0; i < ls.size(); i++) {
 	    ShopItem item = ls.get(i);
-	    ArrayList<String> lore = new ArrayList<>();
+	    List<String> lore = new ArrayList<>();
 	    CMIMaterial mat = CMIMaterial.get(item.getIconMaterial());
 
 	    if (item.isHideWithoutPerm()) {
@@ -130,7 +142,7 @@ public class ShopManager {
 		lore.add(Jobs.getLanguage().getMessage("command.shop.info.NoPoints"));
 	    }
 
-	    if (mat == null)
+	    if (mat == CMIMaterial.NONE)
 		mat = CMIMaterial.STONE_BUTTON;
 
 	    ItemStack guiItem = mat.newItemStack();
@@ -141,7 +153,7 @@ public class ShopManager {
 		continue;
 
 	    if (item.getIconName() != null)
-		meta.setDisplayName(item.getIconName());
+		plugin.getComplement().setDisplayName(meta, item.getIconName());
 
 	    lore.addAll(item.getIconLore());
 
@@ -179,7 +191,7 @@ public class ShopManager {
 			? Jobs.getLanguage().getMessage("command.shop.info.reqTotalLevelColor") : "") + item.getRequiredTotalLevels()));
 	    }
 
-	    meta.setLore(lore);
+	    plugin.getComplement().setLore(meta, lore);
 
 	    if (item.getCustomHead() != null) {
 		guiItem = CMIMaterial.PLAYER_HEAD.newItemStack();
@@ -188,14 +200,12 @@ public class ShopManager {
 		if (skullMeta == null)
 		    continue;
 
-		// Fix skull meta
-		skullMeta.setDisplayName(item.getIconName());
-		skullMeta.setLore(lore);
+		plugin.getComplement().setDisplayName(skullMeta, item.getIconName());
+		plugin.getComplement().setLore(skullMeta, lore);
 
 		if (item.isHeadOwner()) {
 		    Jobs.getNms().setSkullOwner(skullMeta, jPlayer.getPlayer());
 		} else {
-		    @SuppressWarnings("deprecation")
 		    OfflinePlayer offPlayer = Bukkit.getOfflinePlayer(item.getCustomHead());
 		    Jobs.getNms().setSkullOwner(skullMeta, offPlayer);
 		}
@@ -248,7 +258,7 @@ public class ShopManager {
 		    }
 
 		    for (JobItems one : item.getitems()) {
-			GiveItem.GiveItemForPlayer(player, one.getItemStack(player));
+			GiveItem.giveItemForPlayer(player, one.getItemStack(player));
 		    }
 
 		    pointsInfo.takePoints(item.getPrice());
@@ -266,7 +276,7 @@ public class ShopManager {
 
 	int prevSlot = getPrevButtonSlot(guiSize.getFields(), page);
 	if (prevSlot != -1 && page > 1) {
-	    meta.setDisplayName(Jobs.getLanguage().getMessage("command.help.output.prevPage"));
+	    plugin.getComplement().setDisplayName(meta, Jobs.getLanguage().getMessage("command.help.output.prevPage"));
 	    item.setItemMeta(meta);
 
 	    gui.addButton(new CMIGuiButton(prevSlot, item) {
@@ -279,7 +289,7 @@ public class ShopManager {
 
 	int nextSlot = getNextButtonSlot(guiSize.getFields(), page);
 	if (nextSlot != -1 && !getItemsByPage(page + 1).isEmpty()) {
-	    meta.setDisplayName(Jobs.getLanguage().getMessage("command.help.output.nextPage"));
+	    plugin.getComplement().setDisplayName(meta, Jobs.getLanguage().getMessage("command.help.output.nextPage"));
 	    item.setItemMeta(meta);
 	    gui.addButton(new CMIGuiButton(nextSlot, item) {
 		@Override
@@ -304,13 +314,14 @@ public class ShopManager {
 	    return;
 
 	ConfigurationSection confCategory = f.getConfigurationSection("Items");
-	if (confCategory.getKeys(false).isEmpty()) {
+	java.util.Set<String> categories = confCategory.getKeys(false);
+	if (categories.isEmpty()) {
 	    return;
 	}
 
 	int i = 0;
 	int y = 1;
-	for (String category : new ArrayList<>(confCategory.getKeys(false))) {
+	for (String category : new java.util.HashSet<>(categories)) {
 	    ConfigurationSection nameSection = confCategory.getConfigurationSection(category);
 	    if (nameSection == null) {
 		continue;
@@ -321,9 +332,7 @@ public class ShopManager {
 		continue;
 	    }
 
-	    double price = nameSection.getDouble("Price");
-
-	    ShopItem sItem = new ShopItem(category, price);
+	    ShopItem sItem = new ShopItem(category, nameSection.getDouble("Price"));
 
 	    if (nameSection.isString("Icon.Id"))
 		sItem.setIconMaterial(nameSection.getString("Icon.Id"));
@@ -409,39 +418,49 @@ public class ShopManager {
 		    }
 
 		    int amount = itemSection.getInt("Amount", 1);
-
-		    String name = null;
-		    if (itemSection.isString("Name"))
-			name = CMIChatColor.translate(itemSection.getString("Name"));
+		    String name = CMIChatColor.translate(itemSection.getString("Name"));
 
 		    List<String> lore = new ArrayList<>();
-		    if (itemSection.contains("Lore"))
-			for (String eachLine : itemSection.getStringList("Lore")) {
-			    lore.add(CMIChatColor.translate(eachLine));
-			}
+		    for (String eachLine : itemSection.getStringList("Lore")) {
+			lore.add(CMIChatColor.translate(eachLine));
+		    }
 
-		    HashMap<Enchantment, Integer> enchants = new HashMap<>();
-		    if (itemSection.contains("Enchants"))
-			for (String eachLine : itemSection.getStringList("Enchants")) {
-			    if (!eachLine.contains("="))
+		    Map<Enchantment, Integer> enchants = new HashMap<>();
+		    for (String eachLine : itemSection.getStringList("Enchants")) {
+			if (!eachLine.contains("="))
+			    continue;
+
+			String[] split = eachLine.split("=");
+			Enchantment ench = CMIEnchantment.getEnchantment(split[0]);
+			Integer level = 1;
+			if (split.length > 1) {
+			    try {
+				level = Integer.parseInt(split[1]);
+			    } catch (NumberFormatException e) {
 				continue;
-
-			    String[] split = eachLine.split("=");
-			    Enchantment ench = CMIEnchantment.getEnchantment(split[0]);
-			    Integer level = 1;
-			    if (split.length > 1) {
-				try {
-				    level = Integer.parseInt(split[1]);
-				} catch (NumberFormatException e) {
-				    continue;
-				}
 			    }
-
-			    if (ench != null)
-				enchants.put(ench, level);
 			}
 
-		    items.add(new JobItems(node, id == null ? CMIMaterial.STONE : CMIMaterial.get(id), amount, name, lore, enchants, new BoostMultiplier(), new ArrayList<Job>()));
+			if (ench != null)
+			    enchants.put(ench, level);
+		    }
+
+		    Object potionData = null;
+		    if (itemSection.contains("potion-type")) {
+			PotionType type = PotionType.valueOf(itemSection.getString("potion-type", "speed").toUpperCase());
+			if (type == null) {
+			    type = PotionType.SPEED;
+			}
+
+			if (Version.isCurrentEqualOrHigher(Version.v1_10_R1)) {
+			    potionData = new PotionData(type);
+			} else {
+			    potionData = new Potion(type, 1, false);
+			}
+		    }
+
+		    items.add(new JobItems(node, id == null ? CMIMaterial.STONE : CMIMaterial.get(id), amount, name, lore,
+			    enchants, new BoostMultiplier(), new ArrayList<Job>(), potionData));
 		}
 		sItem.setitems(items);
 	    }

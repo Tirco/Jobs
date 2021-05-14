@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>Jobs</groupId>
 	<artifactId>jobs</artifactId>
-	<version>4.17.1</version>
+	<version>4.17.2</version>
 	<name>Jobs</name>
 	<url>http://maven.apache.org</url>
 
@@ -42,6 +42,12 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<dependency>
+			<groupId>com.mojang</groupId>
+			<artifactId>authlib</artifactId>
+			<version>1.5.21</version>
+			<scope>provided</scope>
+		</dependency>
 		<!-- McMMO -->
 		<dependency>
 			<groupId>com.gmail.nossr50.mcMMO</groupId>
@@ -52,7 +58,7 @@
 		</dependency>
 		<!-- Vault -->
 		<dependency>
-			<groupId>net.milkbowl.vault</groupId>
+			<groupId>com.github.MilkBowl</groupId>
 			<artifactId>VaultAPI</artifactId>
 			<version>1.7</version>
 			<scope>provided</scope>
@@ -156,6 +162,10 @@
 					<groupId>org.apache.logging.log4j</groupId>
 					<artifactId>log4j-slf4j-impl</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.bukkit</groupId>
+					<artifactId>bukkit</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<!-- PlaceholderAPI -->
@@ -187,23 +197,21 @@
 		<dependency>
 			<groupId>com.github.Nathat23</groupId>
 			<artifactId>StackMob-5</artifactId>
-			<version>master-SNAPSHOT</version>
-			<scope>provided</scope>
+			<version>5.5.3</version>
+			<scope>system</scope>
+			<systemPath>${basedir}/libs/StackMob-5.5.3.jar</systemPath>
 		</dependency>
 		<!-- MyPet -->
 		<dependency>
 			<groupId>de.keyle</groupId>
 			<artifactId>mypet</artifactId>
-			<version>3.10</version>
-			<scope>provided</scope>
+			<version>3.11-SNAPSHOT</version>
+			<scope>system</scope>
+			<!-- Temporary solution for replacing repository -->
+			<systemPath>${basedir}/libs/mypet-3.11-20210318.180552-1.jar</systemPath>
 		</dependency>
 	</dependencies>
 	<repositories>
-		<!-- Vault -->
-		<repository>
-			<id>vault-repo</id>
-			<url>http://nexus.hc.to/content/repositories/pub_releases/</url>
-		</repository>
 		<!-- MythicMobs -->
 		<repository>
 			<id>nexus</id>
@@ -213,7 +221,7 @@
 		<!-- WorldGuard & WorldEdit -->
 		<repository>
 			<id>sk89q-repo</id>
-			<url>http://maven.sk89q.com/repo/</url>
+			<url>https://maven.enginehub.org/repo/</url>
 		</repository>
 		<repository>
 			<id>jitpack.io</id>
@@ -224,16 +232,18 @@
 			<id>papermc</id>
 			<url>https://papermc.io/repo/repository/maven-public/</url>
 		</repository>
+		<repository>
+			<id>minecraft-repo</id>
+			<url>https://libraries.minecraft.net/</url>
+		</repository>
 		<!-- PlaceholderAPI -->
 		<repository>
 			<id>placeholderapi</id>
-			<url>http://repo.extendedclip.com/content/repositories/placeholderapi/</url>
+			<url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
 		</repository>
 		<!-- MyPet -->
-		<repository>
-			<id>mypet-repo</id>
-			<url>http://repo.keyle.de/</url>
-		</repository>
+		<!--<repository> <id>mypet-repo</id> <url>https://repo.mypet-plugin.de/</url> 
+			</repositor> -->
 	</repositories>
 	<!-- Builds Plugin -->
 	<build>
@@ -257,14 +267,14 @@
 					<target>1.8</target>
 				</configuration>
 			</plugin>
-<!-- 			<plugin> -->
-<!-- 				<groupId>org.apache.maven.plugins</groupId> -->
-<!-- 				<artifactId>maven-jar-plugin</artifactId> -->
-<!-- 				<version>2.3.1</version> -->
-<!-- 				<configuration> -->
-<!-- 					<outputDirectory>D:\MC\Server 1.16\plugins\</outputDirectory> -->
-<!-- 				</configuration> -->
-<!-- 			</plugin> -->
+			<!--<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>2.3.1</version>
+				<configuration>
+					<outputDirectory>D:\MC\Server 1.16\plugins\</outputDirectory>
+				</configuration>
+			</plugin>-->
 		</plugins>
 	</build>
 </project>

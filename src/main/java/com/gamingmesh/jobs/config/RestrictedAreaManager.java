@@ -73,9 +73,12 @@ public class RestrictedAreaManager {
     private void save() {
 	File f = new File(Jobs.getFolder(), "restrictedAreas.yml");
 	YamlConfiguration conf = YamlConfiguration.loadConfiguration(f);
+
 	conf.options().indent(2);
 	conf.options().copyDefaults(true);
+
 	addHeader(new StringBuilder());
+
 	for (Entry<String, RestrictedArea> area : restrictedAreas.entrySet()) {
 	    String areaKey = area.getKey();
 	    CuboidArea cuboid = area.getValue().getCuboidArea();
@@ -139,7 +142,7 @@ public class RestrictedAreaManager {
     }
 
     private StringBuilder addHeader(StringBuilder header) {
-	String sep = System.getProperty("line.separator");
+	String sep = System.lineSeparator();
 
 	header.append("Restricted area configuration");
 	header.append(sep)
@@ -195,20 +198,20 @@ public class RestrictedAreaManager {
 	ConfigurationSection areaSection = conf.getConfigurationSection("restrictedareas");
 	if (areaSection != null) {
 	    for (String areaKey : areaSection.getKeys(false)) {
-		double multiplier = conf.getDouble("restrictedareas." + areaKey + ".multiplier", 0d);
+		double multiplier = areaSection.getDouble(areaKey + ".multiplier");
 
-		if (conf.isBoolean("restrictedareas." + areaKey + ".WG")) {
+		if (areaSection.isBoolean(areaKey + ".WG")) {
 		    addNew(new RestrictedArea(areaKey, areaKey, multiplier));
 		    worldGuardArea = true;
 		} else {
-		    World world = Bukkit.getServer().getWorld(conf.getString("restrictedareas." + areaKey + ".world", ""));
+		    World world = Bukkit.getServer().getWorld(areaSection.getString(areaKey + ".world", ""));
 		    if (world == null)
 			continue;
-		    Location point1 = new Location(world, conf.getDouble("restrictedareas." + areaKey + ".point1.x", 0d), conf.getDouble("restrictedareas." + areaKey
-			+ ".point1.y", 0d), conf.getDouble("restrictedareas." + areaKey + ".point1.z", 0d));
+		    Location point1 = new Location(world, areaSection.getDouble(areaKey + ".point1.x"), areaSection.getDouble(areaKey
+			+ ".point1.y"), areaSection.getDouble(areaKey + ".point1.z"));
 
-		    Location point2 = new Location(world, conf.getDouble("restrictedareas." + areaKey + ".point2.x", 0d), conf.getDouble("restrictedareas." + areaKey
-			+ ".point2.y", 0d), conf.getDouble("restrictedareas." + areaKey + ".point2.z", 0d));
+		    Location point2 = new Location(world, areaSection.getDouble(areaKey + ".point2.x"), areaSection.getDouble(areaKey
+			+ ".point2.y"), areaSection.getDouble(areaKey + ".point2.z"));
 		    addNew(new RestrictedArea(areaKey, new CuboidArea(point1, point2), multiplier));
 		}
 	    }

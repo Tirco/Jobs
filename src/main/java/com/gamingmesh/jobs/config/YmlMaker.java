@@ -2,7 +2,6 @@ package com.gamingmesh.jobs.config;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -35,21 +34,11 @@ public class YmlMaker {
     }
 
     public void reloadConfig() {
-	InputStreamReader f = null;
-	try {
-	    f = new InputStreamReader(new FileInputStream(configFile), StandardCharsets.UTF_8);
-	} catch (FileNotFoundException e1) {
-	    e1.printStackTrace();
-	}
-
-	if (f == null) {
+	if (!exists())
 	    return;
-	}
 
-	configuration = YamlConfiguration.loadConfiguration(f);
-
-	try {
-	    f.close();
+	try (InputStreamReader reader = new InputStreamReader(new FileInputStream(configFile), StandardCharsets.UTF_8)) {
+	    configuration = YamlConfiguration.loadConfiguration(reader);
 	} catch (IOException e) {
 	    e.printStackTrace();
 	}
@@ -73,7 +62,7 @@ public class YmlMaker {
 	try {
 	    getConfig().save(configFile);
 	} catch (IOException ex) {
-	    Jobs.getInstance().getLogger().log(Level.SEVERE, "Could not save config to " + configFile.getName(), ex);
+	    org.bukkit.Bukkit.getLogger().log(Level.SEVERE, "Could not save config to " + configFile.getName(), ex);
 	}
     }
 
@@ -93,6 +82,6 @@ public class YmlMaker {
 
     public void saveDefaultConfig() {
 	if (configFile != null && !configFile.exists())
-	    Jobs.getInstance().saveResource(fileName, false);
+	    org.bukkit.plugin.java.JavaPlugin.getPlugin(Jobs.class).saveResource(fileName, false);
     }
 }

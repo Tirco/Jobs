@@ -1,6 +1,5 @@
 package com.gamingmesh.jobs.config;
 
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -54,11 +53,10 @@ public class ScheduleManager {
 	if (BOOSTSCHEDULE.isEmpty())
 	    return false;
 
-	DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
-	String currenttime = dateFormat.format(new Date());
+	String currentTime = new SimpleDateFormat("HH:mm:ss").format(new Date());
 	String currentDayName = getWeekDay();
 
-	int current = Integer.parseInt(currenttime.replace(":", ""));
+	int current = Integer.parseInt(currentTime.replace(":", ""));
 
 	for (Schedule one : BOOSTSCHEDULE) {
 
@@ -69,7 +67,7 @@ public class ScheduleManager {
 
 	    if (one.isStarted() && one.getBroadcastInfoOn() < System.currentTimeMillis() && one.getBroadcastInterval() > 0) {
 		one.setBroadcastInfoOn(System.currentTimeMillis() + one.getBroadcastInterval() * 60 * 1000);
-		Jobs.getInstance().getComplement().broadcastMessage(one.getMessageToBroadcast());
+		plugin.getComplement().broadcastMessage(one.getMessageToBroadcast());
 	    }
 
 	    if (((one.isNextDay() && (current >= from && current < until || current >= one.getNextFrom() && current < one.getNextUntil()) && !one
@@ -84,9 +82,9 @@ public class ScheduleManager {
 
 		if (one.isBroadcastOnStart())
 		    if (one.getMessageOnStart().isEmpty())
-			Jobs.getInstance().getComplement().broadcastMessage(Jobs.getLanguage().getMessage("message.boostStarted"));
+			plugin.getComplement().broadcastMessage(Jobs.getLanguage().getMessage("message.boostStarted"));
 		    else
-			Jobs.getInstance().getComplement().broadcastMessage(one.getMessageOnStart());
+			plugin.getComplement().broadcastMessage(one.getMessageOnStart());
 
 		for (Job onejob : one.getJobs()) {
 		    onejob.setBoost(one.getBoost());
@@ -107,9 +105,9 @@ public class ScheduleManager {
 
 		if (one.isBroadcastOnStop())
 		    if (one.getMessageOnStop().isEmpty())
-			Jobs.getInstance().getComplement().broadcastMessage(Jobs.getLanguage().getMessage("message.boostStoped"));
+			plugin.getComplement().broadcastMessage(Jobs.getLanguage().getMessage("message.boostStoped"));
 		    else
-			Jobs.getInstance().getComplement().broadcastMessage(one.getMessageOnStop());
+			plugin.getComplement().broadcastMessage(one.getMessageOnStop());
 
 		for (Job onejob : one.getJobs()) {
 		    onejob.setBoost(new BoostMultiplier());
@@ -160,13 +158,14 @@ public class ScheduleManager {
 	conf.options().copyDefaults(true);
 	conf.options().copyHeader(true);
 
-	if (!conf.isConfigurationSection("Boost"))
+	ConfigurationSection section = conf.getConfigurationSection("Boost");
+	if (section == null)
 	    return;
 
-	List<String> sections = new ArrayList<>(conf.getConfigurationSection("Boost").getKeys(false));
+	List<String> sections = new ArrayList<>(section.getKeys(false));
 
 	for (String oneSection : sections) {
-	    ConfigurationSection path = conf.getConfigurationSection("Boost." + oneSection);
+	    ConfigurationSection path = section.getConfigurationSection(oneSection);
 
 	    if (path == null || !path.getBoolean("Enabled") || !path.getString("From", "").contains(":")
 			|| !path.getString("Until", "").contains(":") || !path.isList("Days") || !path.isList("Jobs"))
@@ -183,17 +182,13 @@ public class ScheduleManager {
 	    if (path.isList("MessageOnStart"))
 		sched.setMessageOnStart(path.getStringList("MessageOnStart"), path.getString("From"), path.getString("Until"));
 
-	    if (path.contains("BroadcastOnStart"))
-		sched.setBroadcastOnStart(path.getBoolean("BroadcastOnStart"));
+	    sched.setBroadcastOnStart(path.getBoolean("BroadcastOnStart", true));
 
 	    if (path.isList("MessageOnStop"))
 		sched.setMessageOnStop(path.getStringList("MessageOnStop"), path.getString("From"), path.getString("Until"));
 
-	    if (path.contains("BroadcastOnStop"))
-		sched.setBroadcastOnStop(path.getBoolean("BroadcastOnStop"));
-
-	    if (path.contains("BroadcastInterval"))
-		sched.setBroadcastInterval(path.getInt("BroadcastInterval"));
+	    sched.setBroadcastOnStop(path.getBoolean("BroadcastOnStop", true));
+	    sched.setBroadcastInterval(path.getInt("BroadcastInterval"));
 
 	    if (path.isList("BroadcastMessage"))
 		sched.setMessageToBroadcast(path.getStringList("BroadcastMessage"), path.getString("From"), path.getString("Until"));

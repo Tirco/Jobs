@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.bukkit.Color;
 import org.bukkit.enchantments.Enchantment;
 
 import com.gamingmesh.jobs.CMILib.CMIChatColor;
@@ -89,6 +90,8 @@ public class ItemBoostManager {
 	cfg.addComment("exampleBoost.enchants", "(Optional) Item custom enchants",
 	    "All enchantment names can be found https://hub.spigotmc.org/javadocs/spigot/org/bukkit/enchantments/Enchantment.html");
 	cfg.get("exampleBoost.enchants", Arrays.asList("FIRE_ASPECT=1", "DAMAGE_ALL=1"));
+	cfg.addComment("exampleBoost.leather-color", "(Optional) Leather armour colors (0-255)");
+	cfg.get("exampleBoost.leather-color", "82,34,125");
 	cfg.addComment("exampleBoost.moneyBoost", "[Required] Money boost: 1.1 is equals 10% more income when 0.9 is equals 10% less from base income");
 	for (CurrencyType oneC : CurrencyType.values()) {
 	    cfg.get("exampleBoost." + oneC.toString().toLowerCase() + "Boost", 1D);
@@ -111,16 +114,23 @@ public class ItemBoostManager {
 	    if (one.equalsIgnoreCase("exampleBoost"))
 		continue;
 
-	    CMIMaterial mat = null;
-
-	    if (cfg.getC().isString(one + ".id")) {
-		mat = CMIMaterial.get(cfg.get(one + ".id", "Stone"));
+	    List<Job> jobs = new ArrayList<>();
+	    for (String oneJ : cfg.get(one + ".jobs", Arrays.asList(""))) {
+		if (oneJ.equalsIgnoreCase("all")) {
+		    jobs.addAll(Jobs.getJobs());
+		} else {
+		    Job job = Jobs.getJob(oneJ);
+		    if (job != null) {
+			jobs.add(job);
+		    } else {
+			Jobs.getPluginLogger().warning("Cant determine job by " + oneJ + " name for " + one + " boosted item!");
+		    }
+		}
 	    }
 
-	    String name = null;
-
-	    if (cfg.getC().isString(one + ".name")) {
-		name = cfg.get(one + ".name", "");
+	    if (jobs.isEmpty()) {
+		Jobs.getPluginLogger().warning("Jobs list is empty for " + one + " boosted item!");
+		continue;
 	    }
 
 	    List<String> lore = new ArrayList<>();
@@ -130,15 +140,17 @@ public class ItemBoostManager {
 		}
 	    }
 
-	    HashMap<Enchantment, Integer> enchants = new HashMap<>();
+	    Map<Enchantment, Integer> enchants = new HashMap<>();
 	    if (cfg.getC().isList(one + ".enchants"))
 		for (String eachLine : cfg.get(one + ".enchants", Arrays.asList(""))) {
 		    if (!eachLine.contains("="))
 			continue;
-		    Enchantment ench = CMIEnchantment.getEnchantment(eachLine.split("=")[0]);
+
+		    String[] split = eachLine.split("=", 2);
+		    Enchantment ench = CMIEnchantment.getEnchantment(split[0]);
 		    Integer level = -1;
 		    try {
-			level = Integer.parseInt(eachLine.split("=")[1]);
+			level = Integer.parseInt(split[1]);
 		    } catch (NumberFormatException e) {
 			continue;
 		    }
@@ -148,28 +160,32 @@ public class ItemBoostManager {
 
 	    BoostMultiplier b = new BoostMultiplier();
 	    for (CurrencyType oneC : CurrencyType.values()) {
-		if (cfg.getC().isDouble(one + "." + oneC.toString().toLowerCase() + "Boost") || cfg.getC().isInt(one + "." + oneC.toString().toLowerCase() + "Boost"))
-		    b.add(oneC, cfg.get(one + "." + oneC.toString().toLowerCase() + "Boost", 1D) - 1);
+		String typeName = oneC.toString().toLowerCase();
+		if (cfg.getC().isDouble(one + "." + typeName + "Boost") || cfg.getC().isInt(one + "." + typeName + "Boost"))
+		    b.add(oneC, cfg.get(one + "." + typeName + "Boost", 1D) - 1);
 	    }
 
-	    List<Job> jobs = new ArrayList<>();
-	    for (String oneJ : cfg.get(one + ".jobs", Arrays.asList(""))) {
-		Job job = Jobs.getJob(oneJ);
-		if (job == null && !oneJ.equalsIgnoreCase("all")) {
-		    Jobs.getPluginLogger().warning("Cant determine job by " + oneJ + " name for " + one + " boosted item!");
-		    continue;
+	    CMIMaterial mat = cfg.getC().isString(one + ".id") ? CMIMaterial.get(cfg.get(one + ".id", "Stone")) : null;
+
+	    String name = cfg.getC().isString(one + ".name") ? cfg.get(one + ".name", "") : null;
+	    String node = one.toLowerCase();
+
+	    Color leatherColor = null;
+	    if (cfg.getC().isString(one + ".leather-color")) {
+		String[] split = cfg.getC().getString(one + ".leather-color").split(",", 3);
+		if (split.length != 0) {
+		    int red = Integer.parseInt(split[0]);
+		    int green = split.length > 0 ? Integer.parseInt(split[1]) : 0;
+		    int blue = split.length > 1 ? Integer.parseInt(split[2]) : 0;
+
+		    try {
+			leatherColor = Color.fromRGB(red, green, blue);
+		    } catch (IllegalArgumentException e) {
+		    }
 		}
-		if (oneJ.equalsIgnoreCase("all"))
-		    jobs.addAll(Jobs.getJobs());
-		else if (job != null)
-		    jobs.add(job);
 	    }
 
-	    if (jobs.isEmpty()) {
-		Jobs.getPluginLogger().warning("Jobs list is empty for " + one + " boosted item!");
-		continue;
-	    }
-	    JobItems item = new JobItems(one.toLowerCase(), mat, 1, name, lore, enchants, b, jobs);
+	    JobItems item = new JobItems(node, mat, 1, name, lore, enchants, b, jobs, null, leatherColor);
 
 	    if (cfg.getC().isInt(one + ".levelFrom"))
 		item.setFromLevel(cfg.get(one + ".levelFrom", 0));
@@ -178,16 +194,16 @@ public class ItemBoostManager {
 		item.setUntilLevel(cfg.get(one + ".levelUntil", 1000));
 
 	    for (Job oneJ : jobs) {
-		oneJ.getItemBonus().put(one.toLowerCase(), item);
+		oneJ.getItemBonus().put(node, item);
 	    }
 
 	    // Lets add into legacy map
 	    if (one.contains("_")) {
-		item.setLegacyKey((one.split("_")[1]).toLowerCase());
+		item.setLegacyKey(one.split("_", 2)[1].toLowerCase());
 		LEGACY.put(item.getLegacyKey(), item);
 	    }
-	    ITEMS.put(one.toLowerCase(), item);
 
+	    ITEMS.put(node, item);
 	}
 
 	cfg.save();

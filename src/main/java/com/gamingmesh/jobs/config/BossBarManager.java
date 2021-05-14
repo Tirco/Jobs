@@ -40,8 +40,7 @@ public class BossBarManager {
 	if (Version.getCurrent().isLower(Version.v1_9_R1) || !Jobs.getGCManager().BossBarsMessageByDefault)
 	    return;
 
-	Boolean show = ToggleBarHandling.getBossBarToggle().getOrDefault(player.getPlayer().getUniqueId().toString(), true);
-	if (!show)
+	if (!ToggleBarHandling.getBossBarToggle().getOrDefault(player.getUniqueId().toString(), true))
 	    return;
 
 	BossBar bar = null;
@@ -66,7 +65,7 @@ public class BossBarManager {
 
 	String message = Jobs.getLanguage().getMessage("command.stats.bossBarOutput",
 	    "%joblevel%", Integer.toString(jobProg.getLevel()),
-	    "%jobname%", jobProg.getJob().getNameWithColor(),
+	    "%jobname%", jobProg.getJob().getJobDisplayName(),
 	    "%jobxp%", formatter.format(Math.round(jobProg.getExperience() * 100.0) / 100.0),
 	    "%jobmaxxp%", jobProg.getMaxExperience(),
 	    "%gain%", gain);

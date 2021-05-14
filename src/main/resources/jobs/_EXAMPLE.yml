@@ -3,7 +3,7 @@
 # Edited by roracle to include 1.13 items and item names, preparing for 1.14 as well.
 
 # ATTENTION!
-# This is just an example job and will not be included into job list. Recomended to keep
+# This is just an example job and will not be included into job list. Recommended to keep
 # it around just for reference. Can be removed if needed.
 
 # Must be one word. This job will be ignored as this is just example of all possible actions.
@@ -16,6 +16,9 @@ exampleJob:
 
   # Shortened version of the name of the job. Used as a prefix when the user has more than 1 job.
   shortname: W
+
+  # Jobs display name used only for visualization in specific parts. Can contain spaces and color codes
+  displayName: "&2--{#cancan}Woodcutter&2--"
 
   # The short description of job
   # Please try to not use this, use FullDescription below
@@ -276,7 +279,7 @@ exampleJob:
       income: 2.5
       points: 2.5
       experience: 2.5
-  # Payment for cooking raw foods
+  # Payment for cooking raw foods in camp fire
   Bake:
     beef:
       income: 1.0
@@ -460,7 +463,7 @@ exampleJob:
     tipped_arrow:slowness:
       income: 3.0
       points: 3.0
-  # Smelting ores
+  # Smelting ores in any type of furnaces
   Smelt:
     iron_ingot:
       income: 2.0
@@ -480,10 +483,10 @@ exampleJob:
     DIG_SPEED-1:
       income: 3.0
       experience: 10.0
-    DIG_SPEED-2:
+    dig_speed-2:
       income: 6.0
       experience: 20.0
-  # Brewing potions
+  # Brewing miscellaneous items
   Brew:
     nether_stalk:
       income: 5.0
@@ -492,7 +495,8 @@ exampleJob:
       income: 5.0
       experience: 3.0
   # Explore options. Each number represents players number in exploring that chunk
-  # 1 means that player is first in this chunk, 2 is second and so on, so you can give money not only for first player who discovers that chunk
+  # 1 means that player is first in this chunk, 2 is second and so on,
+  # so you can give money not only for first player who discovers that chunk
   Explore:
     1:
       income: 5.0
@@ -509,7 +513,7 @@ exampleJob:
     5:
       income: 0.1
       experience: 0.1
-  # permissions granted for joining class
+  # permissions granted for joining to a job
   permissions:
     # example node
     # Any name can be accepted
@@ -528,7 +532,7 @@ exampleJob:
       # Permission granted when reaching level 10
       level: 10
 
-  # Permissions granted when particular conditions are meet
+  # Permissions granted when particular conditions are met
   conditions:
     # Condition name, irrelevant, you can write anything in here
     first:
@@ -552,10 +556,12 @@ exampleJob:
       command: lp user [player] permission set essentials.fly
 
       # When to execute this command first time
+      # Set to 0 if you want to detect all the levels
       levelFrom: 100
 
       # Until when to do this command
       # This can be set to same level as levelFrom, so this command will be executed only once
+      # Set to 0 if you want to detect all the levels
       levelUntil: 100
 
     kit:
@@ -566,11 +572,24 @@ exampleJob:
       levelFrom: 150
       levelUntil: 150
 
+  # Perform specific commands when a player reaches the max level of this job.
+  # Players can have vip max level and this will be performed when they reach the max vip level.
+  # You can use "player:" or "console:" prefix tag to perform for specific senders.
+  commands-on-max-level:
+  - 'msg [playerName] Max level of [job] reached!'
+  - 'player:jobs stats'
+  
+  # Turns the "world-blacklist" list into a whitelist. This essentially means the job only works in the specified worlds.
+  reverse-world-blacklist-functionality: false
+  
   # World list in which this job will not work. World name should be exact
   world-blacklist:
   - plotworld
   - teamworld
 
+  # Allow a player to "/jobs join" this job even if they have the max jobs permission reached.
+  ignore-jobs-max: false
+  
   # Limit item use to jobs level
   limitedItems:
     # Just name, don't have any impact

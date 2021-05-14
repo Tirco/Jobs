@@ -1,7 +1,6 @@
 package com.gamingmesh.jobs.stuff;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -11,14 +10,13 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import com.gamingmesh.jobs.Jobs;
 import com.gamingmesh.jobs.CMILib.CMIChatColor;
 import com.gamingmesh.jobs.CMILib.CMIMaterial;
 
 public class GiveItem {
 
     public static void giveItemForPlayer(Player player, int id, int meta, int qty, String name, List<String> lore,
-	    HashMap<Enchantment, Integer> enchants) {
+	    java.util.Map<Enchantment, Integer> enchants) {
 	ItemStack itemStack = CMIMaterial.get(id, meta).newItemStack();
 	itemStack.setAmount(qty);
 	ItemMeta itemMeta = itemStack.getItemMeta();
@@ -32,7 +30,7 @@ public class GiveItem {
 		translatedLore.add(CMIChatColor.translate(oneLore.replace("[player]", player.getName())));
 	    }
 
-	    Jobs.getInstance().getComplement().setLore(itemMeta, translatedLore);
+	    itemMeta.setLore(translatedLore);
 	}
 
 	if (enchants != null) {
@@ -42,14 +40,14 @@ public class GiveItem {
 		    bookMeta.addStoredEnchant(oneEnch.getKey(), oneEnch.getValue(), true);
 		}
 	    } else {
-		for (Entry<Enchantment, Integer> OneEnchant : enchants.entrySet()) {
-		    itemMeta.addEnchant(OneEnchant.getKey(), OneEnchant.getValue(), true);
+		for (Entry<Enchantment, Integer> oneEnchant : enchants.entrySet()) {
+		    itemMeta.addEnchant(oneEnchant.getKey(), oneEnchant.getValue(), true);
 		}
 	    }
 	}
 
 	if (name != null)
-	    Jobs.getInstance().getComplement().setDisplayName(itemMeta, CMIChatColor.translate(name));
+	    itemMeta.setDisplayName(CMIChatColor.translate(name));
 
 	itemStack.setItemMeta(itemMeta);
 	giveItemForPlayer(player, itemStack);

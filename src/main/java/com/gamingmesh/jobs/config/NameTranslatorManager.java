@@ -21,15 +21,15 @@ import com.gamingmesh.jobs.stuff.Util;
 
 public class NameTranslatorManager {
 
-	private final HashMap<CMIMaterial, NameList> ListOfNames = new HashMap<>();
-    private final ArrayList<NameList> ListOfEntities = new ArrayList<>(), ListOfColors = new ArrayList<>();
-    private final HashMap<String, NameList> ListOfEnchants = new HashMap<>(), ListOfMMEntities = new HashMap<>();
+    private final Map<CMIMaterial, NameList> listOfNames = new HashMap<>();
+    private final List<NameList> listOfEntities = new ArrayList<>(), listOfColors = new ArrayList<>();
+    private final Map<String, NameList> listOfEnchants = new HashMap<>(), listOfMMEntities = new HashMap<>();
 
-    public String Translate(String materialName, JobInfo info) {
-	return Translate(materialName, info.getActionType(), info.getId(), info.getMeta(), info.getName());
+    public String translate(String materialName, JobInfo info) {
+	return translate(materialName, info.getActionType(), info.getId(), info.getMeta(), info.getName());
     }
 
-    public String Translate(String materialName, ActionType action, Integer id, String meta, String name) {
+    public String translate(String materialName, ActionType action, int id, String meta, String name) {
 	// Translating name to user friendly
 	if (Jobs.getGCManager().UseCustomNames)
 	    switch (action) {
@@ -53,7 +53,7 @@ public class NameTranslatorManager {
 		materialName = materialName.replace(" ", "");
 
 		CMIMaterial mat = CMIMaterial.get(materialName);
-		NameList nameLs = ListOfNames.get(mat);
+		NameList nameLs = listOfNames.get(mat);
 
 	    if (nameLs != null) {
 		if (meta != null && !meta.isEmpty() && mat.isCanHavePotionType() && Util.getPotionByName(meta) != null) {
@@ -65,7 +65,7 @@ public class NameTranslatorManager {
 
 		if (name != null && !name.isEmpty()) {
 		    mat = CMIMaterial.get(materialName);
-		    nameLs = ListOfNames.get(mat);
+		    nameLs = listOfNames.get(mat);
 
 		    if (nameLs != null) {
 			return nameLs.getName();
@@ -74,11 +74,11 @@ public class NameTranslatorManager {
 
 		if (meta != null && !meta.isEmpty()) {
 		    mat = CMIMaterial.get(materialName + ":" + meta);
-		    nameLs = ListOfNames.get(mat);
+		    nameLs = listOfNames.get(mat);
 		    if (nameLs == null) {
 			mat = CMIMaterial.get(materialName.replace(" ", ""));
-			nameLs = ListOfNames.get(mat);
-			NameList nameMeta = ListOfNames.get(CMIMaterial.get(meta.replace(" ", "")));
+			nameLs = listOfNames.get(mat);
+			NameList nameMeta = listOfNames.get(CMIMaterial.get(meta.replace(" ", "")));
 			if (nameLs != null && nameMeta != null) {
 			    return nameLs + ":" + nameMeta;
 			}
@@ -91,9 +91,9 @@ public class NameTranslatorManager {
 		    }
 		}
 
-		if (id != null && id > 0 && meta != null && !meta.isEmpty()) {
+		if (id > 0 && meta != null && !meta.isEmpty()) {
 		    mat = CMIMaterial.get(id + ":" + meta);
-		    nameLs = ListOfNames.get(mat);
+		    nameLs = listOfNames.get(mat);
 		    if (nameLs == null) {
 			return mat.getName();
 		    }
@@ -104,13 +104,13 @@ public class NameTranslatorManager {
 	    case KILL:
 	    case MILK:
 	    case TAME:
-		for (NameList one : ListOfEntities) {
+		for (NameList one : listOfEntities) {
 		    String ids = one.getId() + ":" + one.getMeta();
 		    if (!one.getMeta().isEmpty() && ids.equalsIgnoreCase(id + ":" + meta) && !one.getId().equals("0")) {
 			return one.getName();
 		    }
 		    ids = one.getId();
-		    if (ids.equalsIgnoreCase(String.valueOf(id)) && !one.getId().equals("0")) {
+		    if (ids.equalsIgnoreCase(Integer.toString(id)) && !one.getId().equals("0")) {
 			return one.getName();
 		    }
 		    ids = one.getMinecraftName();
@@ -123,18 +123,18 @@ public class NameTranslatorManager {
 		String mName = materialName;
 		String level = "";
 		if (mName.contains(":")) {
-		    mName = materialName.split(":")[0];
-		    level = ":" + materialName.split(":")[1];
+		    String[] split = materialName.split(":", 2);
+		    mName = split[0];
+		    level = ":" + split[1];
 		}
-		NameList nameInfo = ListOfEnchants.get(mName.toLowerCase().replace("_", ""));
+		NameList nameInfo = listOfEnchants.get(mName.toLowerCase().replace("_", ""));
 		if (nameInfo != null) {
 		    return nameInfo.getMinecraftName() + level;
 		}
 		break;
 	    case SHEAR:
-		for (NameList one : ListOfColors) {
-		    String ids = one.getMinecraftName();
-		    if (ids.equalsIgnoreCase(name)) {
+		for (NameList one : listOfColors) {
+		    if (one.getMinecraftName().equalsIgnoreCase(name)) {
 			return one.getName();
 		    }
 		}
@@ -144,7 +144,7 @@ public class NameTranslatorManager {
 		.collect(Collectors.joining(" ")); // returns capitalized word (from this -> To This)
 		return fallbackColorName;
 	    case MMKILL:
-		NameList got = ListOfMMEntities.get(materialName.toLowerCase());
+		NameList got = listOfMMEntities.get(materialName.toLowerCase());
 		if (got != null && got.getName() != null)
 		    return got.getName();
 		return HookManager.getMythicManager() == null ? materialName : HookManager.getMythicManager().getDisplayName(materialName);
@@ -158,84 +158,93 @@ public class NameTranslatorManager {
     public void readFile() {
 	YmlMaker itemFile = new YmlMaker(Jobs.getFolder(), "TranslatableWords" + File.separator + "Words_"
 	    + Jobs.getGCManager().localeString + ".yml");
+
 	if (!itemFile.getConfigFile().getName().equalsIgnoreCase("en")) {
 	    itemFile.saveDefaultConfig();
 	}
 
-	if (itemFile.getConfig().isConfigurationSection("ItemList")) {
-	    ListOfNames.clear();
+	ConfigurationSection section = itemFile.getConfig().getConfigurationSection("ItemList");
 
-	    for (String one : itemFile.getConfig().getConfigurationSection("ItemList").getKeys(false)) {
-		String split = one.contains("-") ? one.split("-")[0] : one;
-		String id = split.contains(":") ? split.split(":")[0] : split;
-		String meta = split.contains(":") && split.split(":").length > 1 ? split.split(":")[1] : "";
+	if (section != null) {
+	    listOfNames.clear();
 
-		String MCName = one.contains("-") && one.split("-").length > 1 ? one.split("-")[1] : one;
-		String Name = itemFile.getConfig().getString("ItemList." + one);
-		ListOfNames.put(CMIMaterial.get(one), new NameList(id, meta, Name, MCName));
+	    for (String one : section.getKeys(false)) {
+		String[] firstSplit = one.split("-", 2);
+		String split = firstSplit.length > 0 ? firstSplit[0] : one;
+
+		String[] splitted = split.split(":", 2);
+
+		String id = splitted.length > 0 ? splitted[0] : split;
+		String meta = splitted.length > 1 ? splitted[1] : "";
+
+		String mcName = firstSplit.length > 1 ? firstSplit[1] : one;
+
+		listOfNames.put(CMIMaterial.get(one), new NameList(id, meta, section.getString(one), mcName));
 	    }
 
-	    if (ListOfNames.size() > 0)
-		Jobs.consoleMsg("&e[Jobs] Loaded " + ListOfNames.size() + " custom item names!");
+	    if (listOfNames.size() > 0)
+		Jobs.consoleMsg("&e[Jobs] Loaded " + listOfNames.size() + " custom item names!");
 	} else
 	    Jobs.consoleMsg("&c[Jobs] The ItemList section not found in " + itemFile.fileName + " file.");
 
-	if (itemFile.getConfig().isConfigurationSection("EntityList")) {
-	    ListOfEntities.clear();
+	if ((section = itemFile.getConfig().getConfigurationSection("EntityList")) != null) {
+	    listOfEntities.clear();
 
-	    for (String one : itemFile.getConfig().getConfigurationSection("EntityList").getKeys(false)) {
-		String split = one.contains("-") ? one.split("-")[0] : one;
-		String id = split.contains(":") ? split.split(":")[0] : split;
-		String meta = split.contains(":") ? split.split(":")[1] : "";
-		String MCName = one.contains("-") && one.split("-").length > 1 ? one.split("-")[1] : one;
-		String Name = itemFile.getConfig().getString("EntityList." + one);
-		ListOfEntities.add(new NameList(id, meta, Name, MCName));
+	    for (String one : section.getKeys(false)) {
+		String[] firstSplit = one.split("-", 2);
+		String split = firstSplit.length > 0 ? firstSplit[0] : one;
+
+		String[] splitted = split.split(":", 2);
+
+		String id = splitted.length > 0 ? splitted[0] : split;
+		String meta = splitted.length > 1 ? splitted[1] : "";
+		String mcName = firstSplit.length > 1 ? firstSplit[1] : one;
+
+		listOfEntities.add(new NameList(id, meta, section.getString(one), mcName));
 	    }
 
-	    if (ListOfEntities.size() > 0)
-		Jobs.consoleMsg("&e[Jobs] Loaded " + ListOfEntities.size() + " custom entity names!");
+	    if (listOfEntities.size() > 0)
+		Jobs.consoleMsg("&e[Jobs] Loaded " + listOfEntities.size() + " custom entity names!");
 	} else
 	    Jobs.consoleMsg("&c[Jobs] The EntityList section not found in " + itemFile.fileName + " file.");
 
-	if (itemFile.getConfig().isConfigurationSection("MythicEntityList")) {
-	    ListOfMMEntities.clear();
+	if ((section = itemFile.getConfig().getConfigurationSection("MythicEntityList")) != null) {
+	    listOfMMEntities.clear();
 
-	    for (String one : itemFile.getConfig().getConfigurationSection("MythicEntityList").getKeys(false)) {
-		String Name = itemFile.getConfig().getString("MythicEntityList." + one);
-		ListOfMMEntities.put(one.toLowerCase(), new NameList(null, null, Name, Name));
+	    for (String one : section.getKeys(false)) {
+		String name = section.getString(one);
+		listOfMMEntities.put(one.toLowerCase(), new NameList(null, null, name, name));
 	    }
 
-	    if (ListOfMMEntities.size() > 0)
-		Jobs.consoleMsg("&e[Jobs] Loaded " + ListOfMMEntities.size() + " custom MythicMobs names!");
+	    if (listOfMMEntities.size() > 0)
+		Jobs.consoleMsg("&e[Jobs] Loaded " + listOfMMEntities.size() + " custom MythicMobs names!");
 	} else
 	    Jobs.consoleMsg("&c[Jobs] The MythicEntityList section not found in " + itemFile.fileName + " file.");
 
-	if (itemFile.getConfig().isConfigurationSection("EnchantList")) {
-	    ListOfEnchants.clear();
+	if ((section = itemFile.getConfig().getConfigurationSection("EnchantList")) != null) {
+	    listOfEnchants.clear();
 
-	    ConfigurationSection section = itemFile.getConfig().getConfigurationSection("EnchantList");
 	    for (String one : section.getKeys(false)) {
-		ListOfEnchants.put(one.replace("_", "").toLowerCase(), new NameList(one, one, one, section.getString(one)));
+		listOfEnchants.put(one.replace("_", "").toLowerCase(), new NameList(one, one, one, section.getString(one)));
 	    }
 
-	    if (ListOfEnchants.size() > 0)
-		Jobs.consoleMsg("&e[Jobs] Loaded " + ListOfEnchants.size() + " custom enchant names!");
+	    if (listOfEnchants.size() > 0)
+		Jobs.consoleMsg("&e[Jobs] Loaded " + listOfEnchants.size() + " custom enchant names!");
 	} else
 	    Jobs.consoleMsg("&c[Jobs] The EnchantList section not found in " + itemFile.fileName + " file.");
 
-	if (itemFile.getConfig().isConfigurationSection("ColorList")) {
-	    ListOfColors.clear();
+	if ((section = itemFile.getConfig().getConfigurationSection("ColorList")) != null) {
+	    listOfColors.clear();
 
-	    for (String one : itemFile.getConfig().getConfigurationSection("ColorList").getKeys(false)) {
-		String[] split = one.contains("-") ? one.split("-") : new String[0];
-		String id = split.length != 0 ? split[0] : one;
-		String MCName = split.length > 1 ? split[1] : "";
-		String Name = itemFile.getConfig().getString("ColorList." + one);
-		ListOfColors.add(new NameList(id, "", Name, MCName));
+	    for (String one : section.getKeys(false)) {
+		String[] split = one.split("-", 2);
+		String id = split.length > 0 ? split[0] : one;
+		String mcName = split.length > 1 ? split[1] : "";
+		listOfColors.add(new NameList(id, "", section.getString(one), mcName));
 	    }
 
-	    if (ListOfColors.size() > 0)
-		Jobs.consoleMsg("&e[Jobs] Loaded " + ListOfColors.size() + " custom color names!");
+	    if (listOfColors.size() > 0)
+		Jobs.consoleMsg("&e[Jobs] Loaded " + listOfColors.size() + " custom color names!");
 	} else
 	    Jobs.consoleMsg("&c[Jobs] The ColorList section not found in " + itemFile.fileName + " file.");
     }
@@ -247,9 +256,7 @@ public class NameTranslatorManager {
 	    return;
 
 	File tWordsFolder = new File(Jobs.getFolder(), "TranslatableWords");
-	if (!tWordsFolder.exists()) {
-	    tWordsFolder.mkdirs();
-	}
+	tWordsFolder.mkdirs();
 
 	File file = new File(Jobs.getFolder(), "TranslatableWords.yml");
 	File file2 = new File(tWordsFolder, "Words_" + ls + ".yml");
@@ -382,20 +389,26 @@ public class NameTranslatorManager {
 		c.get("EntityList." + ent.getId() + "-" + ent.toString(), name);
 	    }
 
+	    ConfigurationSection enchSection = c.getC().getConfigurationSection("EnchantList");
 	    for (Enchantment one : Enchantment.values()) {
-		if (CMIEnchantment.getName(one) == null)
+		String enchName = CMIEnchantment.getName(one);
+		if (enchName.equals("Unknown"))
 		    continue;
 
-		String name = Util.firstToUpperCase(CMIEnchantment.getName(one)).replace('_', ' ');
-		if (c.getC().isConfigurationSection("EnchantList"))
-		    for (String onek : c.getC().getConfigurationSection("EnchantList").getKeys(false)) {
-			String old = c.getC().getString("EnchantList." + onek + ".MCName");
-			if (old != null && old.equalsIgnoreCase(CMIEnchantment.getName(one))) {
-			    name = c.getC().getString("EnchantList." + onek + ".Name");
+		String name = enchName;
+
+		if (enchSection != null) {
+		    for (String onek : enchSection.getKeys(false)) {
+			String old = enchSection.getString(onek + ".MCName");
+
+			if (old != null && old.equalsIgnoreCase(enchName)) {
+			    name = enchSection.getString(onek + ".Name");
 			    break;
 			}
 		    }
-		c.get("EnchantList." + CMIEnchantment.getName(one), name);
+		}
+
+		c.get("EnchantList." + enchName, name);
 	    }
 
 	    // Color list

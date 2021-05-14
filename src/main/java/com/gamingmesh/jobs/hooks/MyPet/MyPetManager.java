@@ -4,18 +4,14 @@ import java.util.UUID;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
-
-import com.gamingmesh.jobs.hooks.HookPlugin;
 
 import de.Keyle.MyPet.MyPetApi;
-import de.Keyle.MyPet.MyPetPlugin;
 import de.Keyle.MyPet.api.entity.MyPet;
 import de.Keyle.MyPet.api.entity.MyPetBukkitEntity;
 import de.Keyle.MyPet.api.player.MyPetPlayer;
 import de.Keyle.MyPet.api.repository.PlayerManager;
 
-public class MyPetManager extends HookPlugin {
+public class MyPetManager {
 
     private final PlayerManager mp = MyPetApi.getPlayerManager();
 
@@ -29,8 +25,12 @@ public class MyPetManager extends HookPlugin {
 	}
 
 	MyPetPlayer myPetPlayer = mp.getMyPetPlayer(owner);
-	return myPetPlayer.hasMyPet() && myPetPlayer.getMyPet().getEntity().isPresent() &&
-		myPetPlayer.getMyPet().getEntity().get().getType() == entity.getType();
+	if (!myPetPlayer.hasMyPet()) {
+	    return false;
+	}
+
+	java.util.Optional<MyPetBukkitEntity> opt = myPetPlayer.getMyPet().getEntity();
+	return opt.isPresent() && opt.get().getType() == entity.getType();
     }
 
     public UUID getOwnerOfPet(Entity ent) {
@@ -44,10 +44,5 @@ public class MyPetManager extends HookPlugin {
 	} catch (Exception e) {
 	    return null;
 	}
-    }
-
-    @Override
-    public MyPetPlugin getPlugin() {
-	return JavaPlugin.getPlugin(MyPetPlugin.class);
     }
 }

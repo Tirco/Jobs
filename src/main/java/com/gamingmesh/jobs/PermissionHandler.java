@@ -103,7 +103,8 @@ public class PermissionHandler {
 			    for (JobProgression oneJob : jPlayer.getJobProgression()) {
 				if (oneJob.getJob().getName().equalsIgnoreCase(jobName))
 				    found = true;
-				if (oneJob.getJob().getName().equalsIgnoreCase(jobName) && oneJob.getLevel() < jobLevel) {
+
+				if (found && oneJob.getLevel() < jobLevel) {
 				    ok = false;
 				    break;
 				}
@@ -143,9 +144,8 @@ public class PermissionHandler {
 			     */
 			    if (perm.isValue())
 				permissions.put(perm.getNode(), true);
-			    else {
-				if (!permissions.containsKey(perm.getNode()))
-				    permissions.put(perm.getNode(), false);
+			    else if (!permissions.containsKey(perm.getNode())) {
+				permissions.put(perm.getNode(), false);
 			    }
 			}
 		    }
@@ -169,7 +169,7 @@ public class PermissionHandler {
 				if (oneJob.getJob().getName().equalsIgnoreCase(jobName))
 				    found = true;
 
-				if (oneJob.getJob().getName().equalsIgnoreCase(jobName) && oneJob.getLevel() < jobLevel) {
+				if (found && oneJob.getLevel() < jobLevel) {
 				    ok = false;
 				    break;
 				}
@@ -230,12 +230,15 @@ public class PermissionHandler {
     public void registerPermissions() {
 	PluginManager pm = plugin.getServer().getPluginManager();
 	for (World world : plugin.getServer().getWorlds()) {
-	    if (pm.getPermission("jobs.world." + world.getName().toLowerCase()) == null)
-		pm.addPermission(new Permission("jobs.world." + world.getName().toLowerCase(), PermissionDefault.TRUE));
+	    String worldName = world.getName().toLowerCase();
+	    if (pm.getPermission("jobs.world." + worldName) == null)
+		pm.addPermission(new Permission("jobs.world." + worldName, PermissionDefault.TRUE));
 	}
+
 	for (Job job : Jobs.getJobs()) {
-	    if (pm.getPermission("jobs.join." + job.getName().toLowerCase()) == null)
-		pm.addPermission(new Permission("jobs.join." + job.getName().toLowerCase(), PermissionDefault.TRUE));
+	    String jobName = job.getName().toLowerCase();
+	    if (pm.getPermission("jobs.join." + jobName) == null)
+		pm.addPermission(new Permission("jobs.join." + jobName, PermissionDefault.TRUE));
 	}
     }
 
@@ -248,7 +251,8 @@ public class PermissionHandler {
     }
 
     public boolean hasWorldPermission(JobsPlayer player) {
-	return player.getPlayer() != null && hasWorldPermission(player, player.getPlayer().getWorld().getName());
+	Player pl = player.getPlayer();
+	return pl != null && hasWorldPermission(player, pl.getWorld().getName());
     }
 
     public boolean hasWorldPermission(JobsPlayer player, String world) {

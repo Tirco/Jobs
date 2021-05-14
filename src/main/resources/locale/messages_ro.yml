@@ -515,7 +515,7 @@ command:
   top:
     help:
       info: Arată topul jucătorilor după numele jobului.
-      args: '[jobname]/clear pageNumber'
+      args: '[jobname]/șterge Numărulpaginii'
     error:
       nojob: Nu s-a putut găsi niciun job cu acest nume.
     output:
@@ -527,7 +527,7 @@ command:
   gtop:
     help:
       info: Arată topul jucătorilor după nivelul global al joburilor.
-      args: clear/pageNumber
+      args: șterge/Numarulpaginii
     error:
       nojob: Nu se pot găsi informații.
     output:
@@ -661,10 +661,6 @@ message:
   skillup:
     broadcast: '%playername% a fost promovat la %titlename% %jobname%.'
     nobroadcast: Felicitări, ai fost promovat la %titlename% %jobname%.
-  max-level-reached:
-    title: '&cNivel maxim atins'
-    subtitle: '&2în %jobname%!'
-    chat: '&cAi atins nivelul maxim în %jobname%!'
   levelup:
     broadcast: '%playername% este acum la nivelul %joblevel% %jobname%.'
     nobroadcast: Acum ai nivelul %joblevel% %jobname%.

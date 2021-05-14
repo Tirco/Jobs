@@ -49,7 +49,7 @@ public class editquests implements Cmd {
 
 		for (Job one : Jobs.getJobs()) {
 		    RawMessage rm = new RawMessage();
-		    rm.add(Jobs.getLanguage().getMessage("command.editquests.help.list.jobs", "%jobname%", one.getNameWithColor()),
+		    rm.add(Jobs.getLanguage().getMessage("command.editquests.help.list.jobs", "%jobname%", one.getJobDisplayName()),
 			one.getName(), "jobs editquests list " + one.getName());
 		    rm.show(sender);
 		}
@@ -133,7 +133,7 @@ public class editquests implements Cmd {
 			String objName = target.toLowerCase().replace('_', ' ');
 			objName = Character.toUpperCase(objName.charAt(0)) + objName.substring(1);
 			if (o != null)
-			    objName = Jobs.getNameTranslatorManager().Translate(objName, o.getAction(), o.getTargetId(),
+			    objName = Jobs.getNameTranslatorManager().translate(objName, o.getAction(), o.getTargetId(),
 				o.getTargetMeta(), target);
 			objName = org.bukkit.ChatColor.translateAlternateColorCodes('&', objName);
 
@@ -154,7 +154,7 @@ public class editquests implements Cmd {
 
 		    Util.getQuestsEditorMap().remove(player.getUniqueId());
 
-		    Jobs.getInstance().showPagination(sender, pi, "jobs editquests list " + job.getName() + " " + quest.getConfigName() + " " + 0);
+		    plugin.showPagination(sender, pi, "jobs editquests list " + job.getName() + " " + quest.getConfigName() + " " + 0);
 		    return true;
 		}
 	    }
@@ -217,7 +217,7 @@ public class editquests implements Cmd {
 		}
 
 		org.bukkit.configuration.file.YamlConfiguration file = Jobs.getConfigManager().getJobConfig();
-		String j = "Jobs." + job.getJobKeyName() + ".Quests." + q.getConfigName() + ".";
+		String j = "Jobs." + job.getName() + ".Quests." + q.getConfigName() + ".";
 
 		if (file.isString(j + "Target")) {
 		    Jobs.getConfigManager().changeJobsSettings(args[1], file.getString(j + "Target"), target);
@@ -556,7 +556,7 @@ public class editquests implements Cmd {
 		player.performCommand("jobs editquests list " + job.getName() + " " + actionT.getName() + " " + q.getConfigName() + " 1");
 
 		org.bukkit.configuration.file.YamlConfiguration file = Jobs.getConfigManager().getJobConfig();
-		String j = "Jobs." + job.getJobKeyName() + ".Quests." + q.getConfigName() + ".";
+		String j = "Jobs." + job.getName() + ".Quests." + q.getConfigName() + ".";
 
 		if (file.isString(j + "Target")) {
 		    Jobs.getConfigManager().changeJobsSettings(args[1], file.getString(j + "Target"), (type + subType).toLowerCase());
@@ -594,7 +594,7 @@ public class editquests implements Cmd {
 
 	if (job != null) {
 	    rm = new RawMessage();
-	    rm.addText(Jobs.getLanguage().getMessage("command.editquests.help.list.jobs", "%jobname%", job.getNameWithColor()))
+	    rm.addText(Jobs.getLanguage().getMessage("command.editquests.help.list.jobs", "%jobname%", job.getJobDisplayName()))
 		.addHover(job.getName()).addCommand("jobs editquests list " + job.getName());
 	    rm.show(player);
 	}

@@ -102,12 +102,9 @@ public class JobsCommands implements CommandExecutor {
 
     private String getUsage(String cmd) {
 	String cmdString = Jobs.getLanguage().getMessage("command.help.output.cmdFormat", "[command]", Jobs.getLanguage().getMessage("command.help.output.label") + " " + cmd);
-	String key = "command." + cmd + ".help.args";
-	if (Jobs.getLanguage().containsKey(key) && !Jobs.getLanguage().getMessage(key).isEmpty()) {
-	    cmdString = cmdString.replace("[arguments]", Jobs.getLanguage().getMessage(key));
-	} else
-	    cmdString = cmdString.replace("[arguments]", "");
+	String msg = Jobs.getLanguage().getMessage("command." + cmd + ".help.args");
 
+	cmdString = cmdString.replace("[arguments]", !msg.isEmpty() ? msg : "");
 	return cmdString;
     }
 
@@ -148,8 +145,10 @@ public class JobsCommands implements CommandExecutor {
 
     public Set<String> getCommands(CommandSender sender) {
 	Set<String> temp = new TreeSet<>();
+	boolean senderIsPlayer = sender instanceof Player;
+
 	for (String cmd : commandList) {
-	    if (sender instanceof Player && !hasCommandPermission(sender, cmd))
+	    if (senderIsPlayer && !hasCommandPermission(sender, cmd))
 		continue;
 
 	    temp.add(cmd);
@@ -248,26 +247,30 @@ public class JobsCommands implements CommandExecutor {
 	    message.add(Jobs.getLanguage().getMessage("command.pointboost.output.infostats", "%boost%", (job.getBoost().get(CurrencyType.POINTS)) + 1));
 
 	if (Jobs.getGCManager().useDynamicPayment) {
-	    if ((int) (job.getBonus() * 100) / 100.0 != 0) {
-		if ((int) (job.getBonus() * 100) / 100.0 < 0)
+	    int bonus = (int) ((job.getBonus() * 100) / 100.0);
+
+	    if (bonus != 0) {
+		if (bonus < 0)
 		    message.add(Jobs.getLanguage().getMessage("command.info.help.penalty", "[penalty]", (int) (job.getBonus() * 100) / 100.0 * -1));
 		else
-		    message.add(Jobs.getLanguage().getMessage("command.info.help.bonus", "[bonus]", (int) (job.getBonus() * 100) / 100.0));
+		    message.add(Jobs.getLanguage().getMessage("command.info.help.bonus", "[bonus]", bonus));
 	    }
 	}
 
 	for (ActionType actionType : ActionType.values()) {
 	    if (showAllTypes == 1 || type.startsWith(actionType.getName().toLowerCase())) {
 		List<JobInfo> info = job.getJobInfo(actionType);
+
 		if (info != null && !info.isEmpty()) {
 		    String m = jobInfoMessage(player, job, actionType);
+
 		    if (m.contains("\n"))
 			message.addAll(Arrays.asList(m.split("\n")));
 		    else
 			message.add(m);
 		} else if (showAllTypes == 0) {
 		    String myMessage = Jobs.getLanguage().getMessage("command.info.output." + actionType.getName().toLowerCase() + ".none");
-		    myMessage = myMessage.replace("%jobname%", job.getNameWithColor());
+		    myMessage = myMessage.replace("%jobname%", job.getJobDisplayName());
 		    message.add(myMessage);
 		}
 	    }
@@ -291,11 +294,14 @@ public class JobsCommands implements CommandExecutor {
 
 	String t = type.isEmpty() ? "" : " " + type;
 
-	if (sender instanceof Player)
-	    if (sender.getName().equalsIgnoreCase(player.getName()))
+	if (isPlayer) {
+	    String pName = player.getName();
+
+	    if (sender.getName().equalsIgnoreCase(pName))
 		plugin.showPagination(sender, pi, "jobs info " + job.getName() + t);
 	    else
-		plugin.showPagination(sender, pi, "jobs playerinfo " + player.getName() + " " + job.getName() + t);
+		plugin.showPagination(sender, pi, "jobs playerinfo " + pName + " " + job.getName() + t);
+	}
     }
 
     /**
@@ -316,10 +322,9 @@ public class JobsCommands implements CommandExecutor {
 
 	JobProgression prog = player.getJobProgression(job);
 	int level = prog != null ? prog.getLevel() : 1;
-	int numjobs = player.getJobProgression().size();
+	int numjobs = player.progression.size();
 
-	List<JobInfo> jobInfo = job.getJobInfo(type);
-	for (JobInfo info : jobInfo) {
+	for (JobInfo info : job.getJobInfo(type)) {
 
 	    String materialName = info.getRealisticName();
 
@@ -383,7 +388,7 @@ public class JobsCommands implements CommandExecutor {
 	Title title = Jobs.getTitleManager().getTitle(jobProg.getLevel(), jobProg.getJob().getName());
 	String message = Jobs.getLanguage().getMessage(path,
 	    "%joblevel%", jobProg.getLevel(),
-	    "%jobname%", jobProg.getJob().getNameWithColor(),
+	    "%jobname%", jobProg.getJob().getJobDisplayName(),
 	    "%jobxp%", Math.round(jobProg.getExperience() * 100.0) / 100.0,
 	    "%jobmaxxp%", jobProg.getMaxExperience(),
 	    "%titlename%", title == null ? "Unknown" : title.getName());
@@ -424,12 +429,14 @@ public class JobsCommands implements CommandExecutor {
      */
     public String jobStatsMessageArchive(JobsPlayer jPlayer, JobProgression jobProg) {
 	int level = jPlayer.getLevelAfterRejoin(jobProg);
-	double exp = jPlayer.getExpAfterRejoin(jobProg, jPlayer.getLevelAfterRejoin(jobProg));
+	double exp = jPlayer.getExpAfterRejoin(jobProg, level);
+	int maxExperience = jobProg.getMaxExperience(level);
+
 	String message = Jobs.getLanguage().getMessage("command.stats.output.message",
 	    "%joblevel%", level,
-	    "%jobname%", jobProg.getJob().getNameWithColor(),
+	    "%jobname%", jobProg.getJob().getJobDisplayName(),
 	    "%jobxp%", Math.round(exp * 100.0) / 100.0,
-	    "%jobmaxxp%", jobProg.getMaxExperience(level));
-	return " " + jobProgressMessage(jobProg.getMaxExperience(level), exp) + " " + message;
+	    "%jobmaxxp%", maxExperience);
+	return " " + jobProgressMessage(maxExperience, exp) + " " + message;
     }
 }

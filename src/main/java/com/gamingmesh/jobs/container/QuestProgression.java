@@ -92,29 +92,29 @@ public class QuestProgression {
 	if (quest.isStopped() || !quest.hasAction(action.getType()))
 	    return;
 
-	if (!quest.getObjectives().containsKey(action.getType()) || !quest.getObjectives().get(action.getType()).containsKey(action.getNameWithSub()) && !quest.getObjectives().get(action.getType())
-	    .containsKey(action.getName()))
+	Map<String, QuestObjective> byAction = quest.getObjectives().get(action.getType());
+	if (byAction != null && !byAction.containsKey(action.getNameWithSub()) && !byAction.containsKey(action.getName()))
 	    return;
+
+	org.bukkit.entity.Player player = jPlayer.getPlayer();
 
 	for (String area : quest.getRestrictedAreas()) {
 	    for (Entry<String, RestrictedArea> a : Jobs.getRestrictedAreaManager().getRestrictedAres().entrySet()) {
-		if (quest.getRestrictedAreas().contains(a.getKey()) && a.getKey().equalsIgnoreCase(area)
-		    && a.getValue().inRestrictedArea(jPlayer.getPlayer().getLocation())) {
+		if (a.getKey().equalsIgnoreCase(area) && a.getValue().inRestrictedArea(player.getLocation())) {
 		    return;
 		}
 	    }
 	}
 
-	if (quest.getJob() != null) {
-	    int maxQuest = jPlayer.getPlayerMaxQuest(quest.getJob().getName());
+	Job questJob = quest.getJob();
+	if (questJob != null) {
+	    int maxQuest = jPlayer.getPlayerMaxQuest(questJob.getName());
 	    if (maxQuest > 0 && jPlayer.getDoneQuests() >= maxQuest) {
 		return;
 	    }
 	}
 
 	if (!isCompleted()) {
-	    Map<String, QuestObjective> byAction = quest.getObjectives().get(action.getType());
-
 	    QuestObjective objective = null;
 	    if (byAction != null) {
 		objective = byAction.get(action.getName());
@@ -130,15 +130,15 @@ public class QuestProgression {
 
 	jPlayer.setSaved(false);
 
-	if (!isCompleted() || !jPlayer.isOnline() || givenReward)
+	if (!isCompleted() || !player.isOnline() || givenReward)
 	    return;
 
 	givenReward = true;
 
-	jPlayer.addDoneQuest(quest.getJob());
+	jPlayer.addDoneQuest(questJob);
 
 	for (String one : quest.getRewardCmds()) {
-	    ServerCommandEvent ev = new ServerCommandEvent(Bukkit.getConsoleSender(), one.replace("[playerName]", jPlayer.getPlayer().getName()));
+	    ServerCommandEvent ev = new ServerCommandEvent(Bukkit.getConsoleSender(), one.replace("[playerName]", player.getName()));
 	    Bukkit.getPluginManager().callEvent(ev);
 	    if (!ev.isCancelled()) {
 		Bukkit.dispatchCommand(Bukkit.getConsoleSender(), ev.getCommand().startsWith("/") ? ev.getCommand().substring(1) : ev.getCommand());

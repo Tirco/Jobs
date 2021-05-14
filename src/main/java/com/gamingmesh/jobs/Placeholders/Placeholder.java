@@ -5,9 +5,9 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,6 +24,7 @@ import com.gamingmesh.jobs.container.Quest;
 import com.gamingmesh.jobs.container.QuestProgression;
 import com.gamingmesh.jobs.container.Title;
 import com.gamingmesh.jobs.container.TopList;
+import com.gamingmesh.jobs.container.blockOwnerShip.BlockOwnerShip;
 import com.gamingmesh.jobs.container.blockOwnerShip.BlockTypes;
 import com.gamingmesh.jobs.stuff.TimeManage;
 
@@ -103,7 +104,7 @@ public class Placeholder {
 
 	private String[] vars;
 	private List<Integer> groups = new ArrayList<>();
-	private ChatFilterRule rule = null;
+	private ChatFilterRule rule;
 	private boolean hidden = false;
 
 	JobsPlaceHolders(String... vars) {
@@ -189,27 +190,31 @@ public class Placeholder {
 	}
 
 	public String getName() {
-	    return pref + "_" + this.name();
+	    return pref + "_" + name();
 	}
 
 	public String getFull() {
-	    if (this.isComplex()) {
-		String name = this.getName();
+	    if (isComplex()) {
+		String name = getName();
 		int i = 0;
-		for (String one : this.getName().split("_")) {
+
+		for (String one : name.split("_")) {
 		    if (!one.startsWith("$"))
 			continue;
+
 		    if (vars.length >= i - 1)
 			name = name.replace(one, "[" + vars[i] + "]");
+
 		    i++;
 		}
 
 		return "%" + name + "%";
 	    }
-	    return "%" + this.getName() + "%";
+
+	    return "%" + getName() + "%";
 	}
 
-	public String getMVdW() {
+	/*public String getMVdW() {
 	    if (this.isComplex()) {
 		String name = this.getName();
 		int i = 0;
@@ -224,14 +229,14 @@ public class Placeholder {
 		return name;
 	    }
 	    return this.getName();
-	}
+	}*/
 
 	public List<String> getComplexRegexMatchers(String text) {
 	    List<String> lsInLs = new ArrayList<>();
 	    if (!isComplex())
 		return lsInLs;
 
-	    Matcher matcher = getRule().getMatcher(text);
+	    Matcher matcher = rule.getMatcher(text);
 	    if (matcher == null)
 		return lsInLs;
 
@@ -247,7 +252,7 @@ public class Placeholder {
 	    if (!isComplex() || text == null)
 		return lsInLs;
 
-	    Matcher matcher = getRule().getMatcher(text);
+	    Matcher matcher = rule.getMatcher(text);
 	    if (matcher != null && matcher.find()) {
 		try {
 		    for (Integer oneG : groups) {
@@ -370,17 +375,17 @@ public class Placeholder {
     }
 
     private static JobProgression getProgFromValue(JobsPlayer user, String value) {
-	JobProgression j = null;
 	try {
 	    int id = Integer.parseInt(value);
 	    if (id > 0)
-		j = user.getJobProgression().get(id - 1);
-	} catch (Exception e) {
+		return user.progression.get(id - 1);
+	} catch (IndexOutOfBoundsException | NumberFormatException e) {
 	    Job job = Jobs.getJob(value);
 	    if (job != null)
-		j = user.getJobProgression(job);
+		return user.getJobProgression(job);
 	}
-	return j;
+
+	return null;
     }
 
     private static Job getJobFromValue(String value) {
@@ -405,7 +410,8 @@ public class Placeholder {
 	JobsPlayer user = uuid == null ? null : Jobs.getPlayerManager().getJobsPlayer(uuid);
 	// Placeholders by JobsPlayer object
 	if (user != null) {
-	    NumberFormat format;
+	    NumberFormat format = NumberFormat.getInstance(Locale.ENGLISH);
+
 	    switch (placeHolder) {
 	    case user_dailyquests_pending:
 		Integer pendingQuests = (int) user.getQuestProgressions().stream().filter(q -> !q.isCompleted()).count();
@@ -426,13 +432,13 @@ public class Placeholder {
 	    case user_maxfurncount:
 		return Integer.toString(user.getMaxOwnerShipAllowed(BlockTypes.FURNACE));
 	    case user_smokercount:
-		return !plugin.getBlockOwnerShip(BlockTypes.SMOKER).isPresent() ? "0"
-		    : Integer.toString(plugin.getBlockOwnerShip(BlockTypes.SMOKER).get().getTotal(uuid));
+		Optional<BlockOwnerShip> blastSmoker = plugin.getBlockOwnerShip(BlockTypes.SMOKER);
+		return !blastSmoker.isPresent() ? "0" : Integer.toString(blastSmoker.get().getTotal(uuid));
 	    case user_maxsmokercount:
 		return Integer.toString(user.getMaxOwnerShipAllowed(BlockTypes.SMOKER));
 	    case user_blastcount:
-		return !plugin.getBlockOwnerShip(BlockTypes.BLAST_FURNACE).isPresent() ? "0"
-			    : Integer.toString(plugin.getBlockOwnerShip(BlockTypes.BLAST_FURNACE).get().getTotal(uuid));
+		Optional<BlockOwnerShip> blastShip = plugin.getBlockOwnerShip(BlockTypes.BLAST_FURNACE);
+		return !blastShip.isPresent() ? "0" : Integer.toString(blastShip.get().getTotal(uuid));
 	    case user_maxblastcount:
 		return Integer.toString(user.getMaxOwnerShipAllowed(BlockTypes.BLAST_FURNACE));
 	    case user_doneq:
@@ -447,24 +453,26 @@ public class Placeholder {
 	    case user_points_fixed:
 		return Integer.toString((int) user.getPointsData().getCurrentPoints());
 	    case user_total_points:
-		format = NumberFormat.getInstance(Locale.ENGLISH);
 		return format.format(user.getPointsData().getTotalPoints());
 	    case user_issaved:
 		return convert(user.isSaved());
 	    case user_displayhonorific:
 		return user.getDisplayHonorific();
 	    case user_joinedjobcount:
-		return Integer.toString(user.getJobProgression().size());
+		return Integer.toString(user.progression.size());
 	    case user_archived_jobs:
 		return Integer.toString(user.getArchivedJobs().getArchivedJobs().size());
 	    case user_jobs:
-		List<JobProgression> l = user.getJobProgression();
-		if (l.isEmpty()) {
-		    return "";
+		String jobNames = "";
+		for (JobProgression prog : user.progression) {
+		    if (!jobNames.isEmpty()) {
+			jobNames += ", ";
+		    }
+
+		    jobNames += prog.getJob().getName();
 		}
 
-		JobProgression prog = l.get(ThreadLocalRandom.current().nextInt(l.size()));
-		return prog.getJob().getName();
+		return jobNames;
 	    case user_quests:
 		String q = "";
 		for (QuestProgression questProg : user.getQuestProgressions()) {
@@ -490,26 +498,22 @@ public class Placeholder {
 		if (vals.isEmpty())
 		    return "";
 
-		JobProgression j = getProgFromValue(user, vals.get(0));
-		Job job = getJobFromValue(vals.get(0));
+		String keyValue = vals.get(0);
+		JobProgression j = getProgFromValue(user, keyValue);
+		Job job = getJobFromValue(keyValue);
 
 		switch (placeHolder) {
 		case limit_$1:
-		    CurrencyType t = CurrencyType.getByName(vals.get(0));
-		    return Integer.toString(user.getLimit(t));
+		    return Integer.toString(user.getLimit(CurrencyType.getByName(keyValue)));
 		case plimit_$1:
-		    t = CurrencyType.getByName(vals.get(0));
-		    return Double.toString(user.getPaymentLimit().getAmount(t));
+		    return Double.toString(user.getPaymentLimit().getAmount(CurrencyType.getByName(keyValue)));
 		case plimit_tleft_$1:
-		    t = CurrencyType.getByName(vals.get(0));
-		    return TimeManage.to24hourShort(user.getPaymentLimit().getLeftTime(t));
+		    return TimeManage.to24hourShort(user.getPaymentLimit().getLeftTime(CurrencyType.getByName(keyValue)));
 		case user_jlevel_$1:
 		    return j == null ? "0" : Integer.toString(j.getLevel());
 		case user_jexp_$1:
-		    format = NumberFormat.getInstance(Locale.ENGLISH);
 		    return j == null ? "0" : format.format(j.getExperience());
 		case user_jmaxexp_$1:
-		    format = NumberFormat.getInstance(Locale.ENGLISH);
 		    return j == null ? "0" : format.format(j.getMaxExperience());
 		case user_jexpunf_$1:
 		    return j == null ? "0" : Double.toString(j.getExperience());
@@ -518,10 +522,9 @@ public class Placeholder {
 		case user_jmaxlvl_$1:
 		    return j == null ? "0" : Integer.toString(j.getJob().getMaxLevel(user));
 		case user_boost_$1_$2:
-		    return vals.size() < 2 || j == null ? "" : simplifyDouble(user.getBoost(j.getJob().getName(),
+		    return (vals.size() < 2 || j == null) ? "" : simplifyDouble(user.getBoost(j.getJob().getName(),
 				CurrencyType.getByName(vals.get(1))));
 		case user_jtoplvl_$1_$2:
-		    vals = placeHolder.getComplexValues(value);
 		    if (vals.size() < 2 || job == null)
 			return "";
 
@@ -542,10 +545,6 @@ public class Placeholder {
 			    return "";
 			}).join();
 		case user_isin_$1:
-		    vals = placeHolder.getComplexValues(value);
-		    if (vals.isEmpty())
-			return "";
-
 		    return job == null ? "no" : convert(user.isInJob(job));
 		case user_job_$1:
 		    return j == null ? "" : j.getJob().getName();
@@ -586,21 +585,16 @@ public class Placeholder {
 			if (job == null)
 			    return "";
 
-			if (!Jobs.getCommandManager().hasJobPermission(player, job))
-			    return convert(false);
-
-			if (user.isInJob(job))
+			if (!Jobs.getCommandManager().hasJobPermission(player, job) || user.isInJob(job))
 			    return convert(false);
 
 			if (job.getMaxSlots() != null && Jobs.getUsedSlots(job) >= job.getMaxSlots())
 			    return convert(false);
 
 			int confMaxJobs = Jobs.getGCManager().getMaxJobs();
-			short PlayerMaxJobs = (short) user.getJobProgression().size();
-			if (confMaxJobs > 0 && PlayerMaxJobs >= confMaxJobs && !Jobs.getPlayerManager().getJobsLimit(user, PlayerMaxJobs))
-			    return convert(false);
-
-			return convert(true);
+			short playerMaxJobs = (short) user.progression.size();
+			return convert(confMaxJobs > 0 && playerMaxJobs >= confMaxJobs
+			    && !Jobs.getPlayerManager().getJobsLimit(user, playerMaxJobs));
 
 			case maxjobs:
 			    return Integer.toString(Jobs.getPlayerManager().getMaxJobs(user));

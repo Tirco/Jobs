@@ -17,33 +17,31 @@ public class fire implements Cmd {
 	    return true;
 	}
 
-	JobsPlayer jPlayer = Jobs.getPlayerManager().getJobsPlayer(args[0]);
-
 	Job job = Jobs.getJob(args[1]);
 	if (job == null) {
 	    sender.sendMessage(Jobs.getLanguage().getMessage("general.error.job"));
 	    return true;
 	}
 
+	JobsPlayer jPlayer = Jobs.getPlayerManager().getJobsPlayer(args[0]);
 	if (jPlayer == null) {
 	    sender.sendMessage(Jobs.getLanguage().getMessage("general.error.noinfoByPlayer", "%playername%", args[0]));
 	    return true;
 	}
 
 	if (!jPlayer.isInJob(job)) {
-	    sender.sendMessage(Jobs.getLanguage().getMessage("command.fire.error.nojob", "%jobname%", job.getNameWithColor()));
+	    sender.sendMessage(Jobs.getLanguage().getMessage("command.fire.error.nojob", "%jobname%", job.getJobDisplayName()));
 	    return true;
 	}
-	try {
-	    Jobs.getPlayerManager().leaveJob(jPlayer, job);
+
+	if (Jobs.getPlayerManager().leaveJob(jPlayer, job)) {
 	    Player player = jPlayer.getPlayer();
 	    if (player != null)
-		player.sendMessage(Jobs.getLanguage().getMessage("command.fire.output.target", "%jobname%", job.getNameWithColor()));
+		player.sendMessage(Jobs.getLanguage().getMessage("command.fire.output.target", "%jobname%", job.getJobDisplayName()));
 
 	    sender.sendMessage(Jobs.getLanguage().getMessage("general.admin.success"));
-	} catch (Throwable e) {
-	    sender.sendMessage(Jobs.getLanguage().getMessage("general.admin.error"));
 	}
+
 	return true;
     }
 }

@@ -37,6 +37,7 @@ import com.gamingmesh.jobs.CMILib.ActionBarManager;
 import com.gamingmesh.jobs.CMILib.CMIChatColor;
 import com.gamingmesh.jobs.CMILib.CMIMaterial;
 import com.gamingmesh.jobs.Signs.SignTopType;
+import com.gamingmesh.jobs.api.JobsLevelUpEvent;
 import com.gamingmesh.jobs.container.blockOwnerShip.BlockTypes;
 import com.gamingmesh.jobs.dao.JobsDAO;
 import com.gamingmesh.jobs.economy.PaymentData;
@@ -44,6 +45,8 @@ import com.gamingmesh.jobs.resources.jfep.Parser;
 import com.gamingmesh.jobs.stuff.TimeManage;
 
 public class JobsPlayer {
+
+    private final Jobs plugin = org.bukkit.plugin.java.JavaPlugin.getPlugin(Jobs.class);
 
     private String userName = "Unknown";
 
@@ -88,7 +91,7 @@ public class JobsPlayer {
 
     private final Map<UUID, Map<Job, Long>> leftTimes = new HashMap<>();
 
-    private PlayerPoints pointsData;
+    private PlayerPoints pointsData = new PlayerPoints();
 
     public JobsPlayer(String userName) {
 	this.userName = userName == null ? "Unknown" : userName;
@@ -98,8 +101,6 @@ public class JobsPlayer {
      * @return the cached or new instance of {@link PlayerPoints}
      */
     public PlayerPoints getPointsData() {
-	if (pointsData == null)
-	    pointsData = new PlayerPoints();
 	return pointsData;
     }
 
@@ -109,7 +110,7 @@ public class JobsPlayer {
      * @param points the amount of points
      */
     public void addPoints(double points) {
-	getPointsData().addPoints(points);
+	pointsData.addPoints(points);
     }
 
     /**
@@ -118,7 +119,7 @@ public class JobsPlayer {
      * @param points the amount of points
      */
     public void takePoints(double points) {
-	getPointsData().takePoints(points);
+	pointsData.takePoints(points);
     }
 
     /**
@@ -127,7 +128,7 @@ public class JobsPlayer {
      * @param points the amount of points
      */
     public void setPoints(double points) {
-	getPointsData().setPoints(points);
+	pointsData.setPoints(points);
     }
 
     /**
@@ -136,9 +137,9 @@ public class JobsPlayer {
      * @param points {@link PlayerPoints}
      */
     public void setPoints(PlayerPoints points) {
-	getPointsData().setPoints(points.getCurrentPoints());
-	getPointsData().setTotalPoints(points.getTotalPoints());
-	getPointsData().setDbId(points.getDbId());
+	pointsData.setPoints(points.getCurrentPoints());
+	pointsData.setTotalPoints(points.getTotalPoints());
+	pointsData.setDbId(points.getDbId());
     }
 
     /**
@@ -148,7 +149,7 @@ public class JobsPlayer {
      * @return true if yes
      */
     public boolean havePoints(double points) {
-	return getPointsData().getCurrentPoints() >= points;
+	return pointsData.getCurrentPoints() >= points;
     }
 
     /**
@@ -206,9 +207,12 @@ public class JobsPlayer {
      * @param amount amount of points
      * @return true if it is under
      */
-    public boolean isUnderLimit(CurrencyType type, Double amount) {
+    public boolean isUnderLimit(CurrencyType type, double amount) {
+	if (amount == 0)
+	    return true;
+
 	Player player = getPlayer();
-	if (player == null || amount == 0)
+	if (player == null)
 	    return true;
 
 	CurrencyLimit limit = Jobs.getGCManager().getLimit(type);
@@ -217,7 +221,7 @@ public class JobsPlayer {
 
 	PaymentData data = getPaymentLimit();
 
-	if (data.isReachedLimit(type, limits.getOrDefault(type, 0))) {
+	if (data.isReachedLimit(type, getLimit(type))) {
 	    String name = type.getName().toLowerCase();
 
 	    if (player.isOnline() && !data.isInformed() && !data.isReseted(type)) {
@@ -229,21 +233,25 @@ public class JobsPlayer {
 		    player.sendMessage(Jobs.getLanguage().getMessage("command.limit.output.reached" + name + "limit"));
 		    player.sendMessage(Jobs.getLanguage().getMessage("command.limit.output.reached" + name + "limit2"));
 		}
+
 		data.setInformed(true);
 	    }
+
 	    if (data.isAnnounceTime(limit.getAnnouncementDelay()) && player.isOnline())
 		ActionBarManager.send(player, Jobs.getLanguage().getMessage("command.limit.output." + name + "time", "%time%", TimeManage.to24hourShort(data.getLeftTime(type))));
+
 	    if (data.isReseted(type))
 		data.setReseted(type, false);
+
 	    return false;
 	}
+
 	data.addAmount(type, amount);
 	return true;
     }
 
     public double percentOverLimit(CurrencyType type) {
-	Integer value = limits.get(type);
-	return getPaymentLimit().percentOverLimit(type, value == null ? 0 : value);
+	return getPaymentLimit().percentOverLimit(type, getLimit(type));
     }
 
     /**
@@ -301,13 +309,13 @@ public class JobsPlayer {
     /**
      * Attempts to get the boost from specific job and {@link CurrencyType}
      * 
-     * @param JobName
+     * @param jobName
      * @param type {@link CurrencyType}
      * @see #getBoost(String, CurrencyType, boolean)
      * @return amount of boost
      */
-    public double getBoost(String JobName, CurrencyType type) {
-	return getBoost(JobName, type, false);
+    public double getBoost(String jobName, CurrencyType type) {
+	return getBoost(jobName, type, false);
     }
 
     /**
@@ -326,8 +334,8 @@ public class JobsPlayer {
 
 	long time = System.currentTimeMillis();
 
-	if (boostCounter.containsKey(jobName)) {
-	    List<BoostCounter> counterList = boostCounter.get(jobName);
+	List<BoostCounter> counterList = boostCounter.get(jobName);
+	if (counterList != null) {
 	    for (BoostCounter counter : counterList) {
 		if (counter.getType() != type)
 		    continue;
@@ -349,7 +357,7 @@ public class JobsPlayer {
 
 	boost = getPlayerBoostNew(jobName, type);
 
-	List<BoostCounter> counterList = new ArrayList<>();
+	counterList = new ArrayList<>();
 	counterList.add(new BoostCounter(type, boost, time));
 
 	boostCounter.put(jobName, counterList);
@@ -376,10 +384,10 @@ public class JobsPlayer {
     }
 
     public int getPlayerMaxQuest(String jobName) {
-	int m1 = Jobs.getPermissionManager().getMaxPermission(this, "jobs.maxquest." + jobName, false, true).intValue();
+	int m1 = (int) Jobs.getPermissionManager().getMaxPermission(this, "jobs.maxquest." + jobName, false, true);
 	int max = m1;
 
-	m1 = Jobs.getPermissionManager().getMaxPermission(this, "jobs.maxquest.all", false, true).intValue();
+	m1 = (int) Jobs.getPermissionManager().getMaxPermission(this, "jobs.maxquest.all", false, true);
 	if (m1 != 0 && (m1 > max || m1 < max)) {
 	    max = m1;
 	}
@@ -413,7 +421,7 @@ public class JobsPlayer {
     }
 
     public int getLimit(CurrencyType type) {
-	return type == null ? 0 : limits.get(type);
+	return limits.getOrDefault(type, 0);
     }
 
     public void resetPaymentLimit() {
@@ -438,10 +446,13 @@ public class JobsPlayer {
      * @return the job progression or null if job not exists
      */
     public JobProgression getJobProgression(Job job) {
-	for (JobProgression prog : progression) {
-	    if (prog.getJob().isSame(job))
-		return prog;
+	if (job != null) {
+	    for (JobProgression prog : progression) {
+		if (prog.getJob().isSame(job))
+		    return prog;
+	    }
 	}
+
 	return null;
     }
 
@@ -572,9 +583,7 @@ public class JobsPlayer {
      */
     public boolean leaveJob(Job job) {
 //	synchronized (saveLock) {
-	JobProgression prog = getJobProgression(job);
-	if (prog != null) {
-	    progression.remove(prog);
+	if (progression.remove(getJobProgression(job))) {
 	    reloadMaxExperience();
 	    reloadLimits();
 	    reloadHonorific();
@@ -605,9 +614,12 @@ public class JobsPlayer {
      * @param levels - number of levels to promote
      */
     public void promoteJob(Job job, int levels) {
+	if (levels <= 0)
+	    return;
+
 //	synchronized (saveLock) {
 	JobProgression prog = getJobProgression(job);
-	if (prog == null || levels <= 0)
+	if (prog == null)
 	    return;
 
 	int oldLevel = prog.getLevel(),
@@ -627,9 +639,12 @@ public class JobsPlayer {
      * @param levels - number of levels to demote
      */
     public void demoteJob(Job job, int levels) {
+	if (levels <= 0)
+	    return;
+
 //	synchronized (saveLock) {
 	JobProgression prog = getJobProgression(job);
-	if (prog == null || levels <= 0)
+	if (prog == null)
 	    return;
 
 	int newLevel = prog.getLevel() - levels;
@@ -651,8 +666,23 @@ public class JobsPlayer {
 	if (prog == null)
 	    return;
 
-	if (level != prog.getLevel()) {
-	    prog.setLevel(level);
+	int oldLevel = prog.getLevel();
+
+	if (level != oldLevel) {
+	    if (prog.setLevel(level)) {
+		JobsLevelUpEvent levelUpEvent = new JobsLevelUpEvent(this, job, prog.getLevel(),
+		    Jobs.getTitleManager().getTitle(oldLevel, prog.getJob().getName()),
+		    Jobs.getTitleManager().getTitle(prog.getLevel(), prog.getJob().getName()),
+		    Jobs.getGCManager().SoundLevelupSound,
+		    Jobs.getGCManager().SoundLevelupVolume,
+		    Jobs.getGCManager().SoundLevelupPitch,
+		    Jobs.getGCManager().SoundTitleChangeSound,
+		    Jobs.getGCManager().SoundTitleChangeVolume,
+		    Jobs.getGCManager().SoundTitleChangePitch);
+
+		plugin.getServer().getPluginManager().callEvent(levelUpEvent);
+	    }
+
 	    reloadHonorific();
 	    reloadLimits();
 	    Jobs.getPermissionHandler().recalculatePermissions(this);
@@ -698,12 +728,15 @@ public class JobsPlayer {
 	    maxLevel = job.getVipMaxLevel() > job.getMaxLevel() ? job.getVipMaxLevel() : job.getMaxLevel();
 	else
 	    maxLevel = job.getMaxLevel();
-	int tMax = Jobs.getPermissionManager().getMaxPermission(this, "jobs." + job.getName() + ".vipmaxlevel").intValue();
+
+	int tMax = (int) Jobs.getPermissionManager().getMaxPermission(this, "jobs." + job.getName() + ".vipmaxlevel");
 	if (tMax > maxLevel)
 	    maxLevel = tMax;
-	tMax = Jobs.getPermissionManager().getMaxPermission(this, "jobs.all.vipmaxlevel").intValue();
+
+	tMax = (int) Jobs.getPermissionManager().getMaxPermission(this, "jobs.all.vipmaxlevel");
 	if (tMax > maxLevel)
 	    maxLevel = tMax;
+
 	return maxLevel;
     }
 
@@ -714,13 +747,7 @@ public class JobsPlayer {
      * @return true if this player is in the given job, otherwise false
      */
     public boolean isInJob(Job job) {
-	if (job == null)
-	    return false;
-	for (JobProgression prog : progression) {
-	    if (prog.getJob().isSame(job))
-		return true;
-	}
-	return false;
+	return getJobProgression(job) != null;
     }
 
     /**
@@ -734,11 +761,11 @@ public class JobsPlayer {
 		DisplayMethod method = prog.getJob().getDisplayMethod();
 		if (method == DisplayMethod.NONE)
 		    continue;
-		if (!builder.toString().isEmpty()) {
+		if (builder.length() > 0) {
 		    builder.append(Jobs.getGCManager().modifyChatSeparator);
 		}
-		Title title = Jobs.getTitleManager().getTitle(prog.getLevel(), prog.getJob().getName());
-		processesChat(method, builder, prog.getLevel(), title, prog.getJob());
+		processesChat(method, builder, prog.getLevel(), Jobs.getTitleManager().getTitle(prog.getLevel(),
+		    prog.getJob().getName()), prog.getJob());
 	    }
 	} else {
 	    Job nonejob = Jobs.getNoneJob();
@@ -921,7 +948,6 @@ public class JobsPlayer {
      * @return true if yes
      */
     public boolean canGetPaid(ActionInfo info) {
-	List<JobProgression> progression = getJobProgression();
 	int numjobs = progression.size();
 
 	if (numjobs == 0) {
@@ -997,18 +1023,20 @@ public class JobsPlayer {
 
     public void resetQuests(List<QuestProgression> quests) {
 	for (QuestProgression oneQ : quests) {
-	    if (oneQ.getQuest() == null) {
-		continue;
-	    }
+	    if (oneQ.getQuest() != null) {
+		Map<String, QuestProgression> map = qProgression.remove(oneQ.getQuest().getJob().getName());
 
-	    Job job = oneQ.getQuest().getJob();
-	    getNewQuests(job);
-	    qProgression.remove(job.getName());
+		if (map != null) {
+		    map.clear();
+		}
+	    }
 	}
     }
 
     public void resetQuests() {
-	getJobProgression().forEach(one -> resetQuests(one.getJob()));
+	for (JobProgression prog : progression) {
+	    resetQuests(prog.getJob());
+	}
     }
 
     public void getNewQuests() {
@@ -1024,7 +1052,7 @@ public class JobsPlayer {
 
 	Quest q = quest.getJob().getNextQuest(getQuestNameList(quest.getJob(), null), getJobProgression(quest.getJob()).getLevel());
 	if (q == null) {
-	    for (JobProgression one : this.getJobProgression()) {
+	    for (JobProgression one : progression) {
 		if (one.getJob().isSame(quest.getJob()))
 		    continue;
 		q = one.getJob().getNextQuest(getQuestNameList(one.getJob(), null), getJobProgression(one.getJob()).getLevel());
@@ -1045,7 +1073,9 @@ public class JobsPlayer {
 	if (q.getConfigName().equals(quest.getConfigName()))
 	    return;
 
-	if (prog.containsKey(q.getConfigName().toLowerCase()))
+	String confName = q.getConfigName().toLowerCase();
+
+	if (prog.containsKey(confName))
 	    return;
 
 	if (q.getJob() != quest.getJob() && prog.size() >= q.getJob().getMaxDailyQuests())
@@ -1055,13 +1085,13 @@ public class JobsPlayer {
 	    orProg.remove(quest.getConfigName().toLowerCase());
 	}
 
-	prog.put(q.getConfigName().toLowerCase(), new QuestProgression(q));
+	prog.put(confName, new QuestProgression(q));
 	skippedQuests++;
     }
 
     public List<QuestProgression> getQuestProgressions() {
 	List<QuestProgression> g = new ArrayList<>();
-	for (JobProgression one : getJobProgression()) {
+	for (JobProgression one : progression) {
 	    g.addAll(getQuestProgressions(one.getJob()));
 	}
 	return g;
@@ -1081,8 +1111,7 @@ public class JobsPlayer {
 	if (qProg != null)
 	    g = new HashMap<>(qProg);
 
-	Map<String, QuestProgression> tmp = new HashMap<>();
-	for (Entry<String, QuestProgression> one : (new HashMap<>(g)).entrySet()) {
+	for (Entry<String, QuestProgression> one : new HashMap<>(g).entrySet()) {
 	    QuestProgression qp = one.getValue();
 
 	    if (qp.isEnded()) {
@@ -1096,8 +1125,7 @@ public class JobsPlayer {
 	    while (i <= job.getQuests().size()) {
 		++i;
 
-		List<String> currentQuests = new ArrayList<>(g.keySet());
-		Quest q = job.getNextQuest(currentQuests, getJobProgression(job).getLevel());
+		Quest q = job.getNextQuest(new ArrayList<>(g.keySet()), getJobProgression(job).getLevel());
 		if (q == null)
 		    continue;
 
@@ -1124,6 +1152,7 @@ public class JobsPlayer {
 
 	qProgression.put(job.getName(), g);
 
+	Map<String, QuestProgression> tmp = new HashMap<>();
 	for (QuestProgression oneJ : g.values()) {
 	    Quest q = oneJ.getQuest();
 	    if (q == null) {
@@ -1178,66 +1207,62 @@ public class JobsPlayer {
 	    return;
 
 	for (String one : qprog.split(";:;")) {
-	    try {
-		String jname = one.split(":")[0];
-		Job job = Jobs.getJob(jname);
-		if (job == null)
-		    continue;
+	    String jname = one.split(":", 2)[0];
+	    Job job = Jobs.getJob(jname);
+	    if (job == null)
+		continue;
 
-		one = one.substring(jname.length() + 1);
+	    one = one.substring(jname.length() + 1);
 
-		String qname = one.split(":")[0];
-		Quest quest = job.getQuest(qname);
-		if (quest == null)
-		    continue;
+	    String qname = one.split(":", 2)[0];
+	    Quest quest = job.getQuest(qname);
+	    if (quest == null)
+		continue;
 
-		one = one.substring(qname.length() + 1);
+	    one = one.substring(qname.length() + 1);
 
-		String longS = one.split(":")[0];
-		long validUntil = Long.parseLong(longS);
-		one = one.substring(longS.length() + 1);
+	    String longS = one.split(":", 2)[0];
+	    long validUntil = Long.parseLong(longS);
+	    one = one.substring(longS.length() + 1);
 
-		Map<String, QuestProgression> currentProgression = qProgression.get(job.getName());
+	    Map<String, QuestProgression> currentProgression = qProgression.get(job.getName());
 
-		if (currentProgression == null) {
-		    currentProgression = new HashMap<>();
-		    qProgression.put(job.getName(), currentProgression);
-		}
-
-		QuestProgression qp = currentProgression.get(qname.toLowerCase());
-		if (qp == null) {
-		    qp = new QuestProgression(quest);
-		    qp.setValidUntil(validUntil);
-		    currentProgression.put(qname.toLowerCase(), qp);
-		}
-
-		for (String oneA : one.split(":;:")) {
-		    String prog = oneA.split(";")[0];
-		    ActionType action = ActionType.getByName(prog);
-		    if (action == null || oneA.length() < prog.length() + 1)
-			continue;
-
-		    oneA = oneA.substring(prog.length() + 1);
-
-		    String target = oneA.split(";")[0];
-		    Map<String, QuestObjective> old = quest.getObjectives().get(action);
-		    if (old == null)
-			continue;
-
-		    QuestObjective obj = old.get(target);
-		    if (obj == null)
-			continue;
-
-		    oneA = oneA.substring(target.length() + 1);
-
-		    qp.setAmountDone(obj, Integer.parseInt(oneA.split(";")[0]));
-		}
-
-		if (qp.isCompleted())
-		    qp.setGivenReward(true);
-	    } catch (Exception e) {
-		e.printStackTrace();
+	    if (currentProgression == null) {
+		currentProgression = new HashMap<>();
+		qProgression.put(job.getName(), currentProgression);
 	    }
+
+	    QuestProgression qp = currentProgression.get(qname.toLowerCase());
+	    if (qp == null) {
+		qp = new QuestProgression(quest);
+		qp.setValidUntil(validUntil);
+		currentProgression.put(qname.toLowerCase(), qp);
+	    }
+
+	    for (String oneA : one.split(":;:")) {
+		String prog = oneA.split(";", 2)[0];
+		ActionType action = ActionType.getByName(prog);
+		if (action == null || oneA.length() < prog.length() + 1)
+		    continue;
+
+		Map<String, QuestObjective> old = quest.getObjectives().get(action);
+		if (old == null)
+		    continue;
+
+		oneA = oneA.substring(prog.length() + 1);
+
+		String target = oneA.split(";", 2)[0];
+		QuestObjective obj = old.get(target);
+		if (obj == null)
+		    continue;
+
+		oneA = oneA.substring(target.length() + 1);
+
+		qp.setAmountDone(obj, Integer.parseInt(oneA.split(";", 2)[0]));
+	    }
+
+	    if (qp.isCompleted())
+		qp.setGivenReward(true);
 	}
     }
 
@@ -1256,12 +1281,9 @@ public class JobsPlayer {
 	this.setSaved(false);
 
 	if (questSignUpdateShed == null) {
-	    questSignUpdateShed = Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(Jobs.getInstance(), new Runnable() {
-		@Override
-		public void run() {
-		    Jobs.getSignUtil().SignUpdate(job, SignTopType.questtoplist);
-		    questSignUpdateShed = null;
-		}
+	    questSignUpdateShed = Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> {
+		Jobs.getSignUtil().signUpdate(job, SignTopType.questtoplist);
+		questSignUpdateShed = null;
 	    }, Jobs.getGCManager().getSavePeriod() * 60 * 20L);
 	}
     }
@@ -1272,7 +1294,7 @@ public class JobsPlayer {
      */
     @Deprecated
     public int getFurnaceCount() {
-	return !Jobs.getInstance().getBlockOwnerShip(BlockTypes.FURNACE).isPresent() ? 0 : Jobs.getInstance().getBlockOwnerShip(BlockTypes.FURNACE).get().getTotal(getUniqueId());
+	return !plugin.getBlockOwnerShip(BlockTypes.FURNACE).isPresent() ? 0 : plugin.getBlockOwnerShip(BlockTypes.FURNACE).get().getTotal(getUniqueId());
     }
 
     /**
@@ -1281,7 +1303,7 @@ public class JobsPlayer {
      */
     @Deprecated
     public int getBrewingStandCount() {
-	return !Jobs.getInstance().getBlockOwnerShip(BlockTypes.BREWING_STAND).isPresent() ? 0 : Jobs.getInstance().getBlockOwnerShip(BlockTypes.BREWING_STAND).get().getTotal(getUniqueId());
+	return !plugin.getBlockOwnerShip(BlockTypes.BREWING_STAND).isPresent() ? 0 : plugin.getBlockOwnerShip(BlockTypes.BREWING_STAND).get().getTotal(getUniqueId());
     }
 
     /**
@@ -1349,7 +1371,8 @@ public class JobsPlayer {
 
     public boolean isLeftTimeEnded(Job job) {
 	Map<Job, Long> map = leftTimes.get(getUniqueId());
-	return map != null && map.containsKey(job) && map.get(job).longValue() < System.currentTimeMillis();
+	Long time = map != null ? map.get(job) : null;
+	return time != null && time.longValue() < System.currentTimeMillis();
     }
 
     public void setLeftTime(Job job) {

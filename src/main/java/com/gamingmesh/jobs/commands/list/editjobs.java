@@ -40,7 +40,7 @@ public class editjobs implements Cmd {
 
 		for (Job one : Jobs.getJobs()) {
 		    RawMessage rm = new RawMessage();
-		    rm.add(Jobs.getLanguage().getMessage("command.editjobs.help.list.jobs", "%jobname%", one.getNameWithColor()), one.getName(), "jobs editjobs list " + one.getName());
+		    rm.add(Jobs.getLanguage().getMessage("command.editjobs.help.list.jobs", "%jobname%", one.getJobDisplayName()), one.getName(), "jobs editjobs list " + one.getName());
 		    rm.show(sender);
 		}
 
@@ -113,8 +113,7 @@ public class editjobs implements Cmd {
 		    rm.show(sender);
 		    Util.getJobsEditorMap().remove(player.getUniqueId());
 
-		    Jobs.getInstance().showPagination(sender, pi, "jobs editjobs list " + job.getName() + " " + actionT.getName());
-
+		    plugin.showPagination(sender, pi, "jobs editjobs list " + job.getName() + " " + actionT.getName());
 		    return true;
 		}
 
@@ -404,7 +403,7 @@ public class editjobs implements Cmd {
 
 	if (job != null) {
 	    rm = new RawMessage();
-	    rm.addText(Jobs.getLanguage().getMessage("command.editjobs.help.list.jobs", "%jobname%", job.getNameWithColor()))
+	    rm.addText(Jobs.getLanguage().getMessage("command.editjobs.help.list.jobs", "%jobname%", job.getJobDisplayName()))
 	    .addHover(job.getName()).addCommand("jobs editjobs list " + job.getName());
 	    rm.show(player);
 	}
@@ -422,7 +421,7 @@ public class editjobs implements Cmd {
 
 	    String materialName = jInfo.getName().toLowerCase().replace('_', ' ');
 	    materialName = Character.toUpperCase(materialName.charAt(0)) + materialName.substring(1);
-	    materialName = Jobs.getNameTranslatorManager().Translate(materialName, jInfo);
+	    materialName = Jobs.getNameTranslatorManager().translate(materialName, jInfo);
 	    materialName = CMIChatColor.translate(materialName);
 
 	    rm.addText(Jobs.getLanguage().getMessage("command.editjobs.help.list.material", "%materialname%", jInfo.getName()))

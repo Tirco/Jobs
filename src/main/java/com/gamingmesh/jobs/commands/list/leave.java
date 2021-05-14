@@ -22,14 +22,13 @@ public class leave implements Cmd {
 	}
 
 	Player pSender = (Player) sender;
-	String jobName = args[0];
-	Job job = Jobs.getJob(jobName);
+	Job job = Jobs.getJob(args[0]);
 	if (job == null) {
 	    pSender.sendMessage(Jobs.getLanguage().getMessage("general.error.job"));
 	    return true;
 	}
 
-	if (Jobs.getGCManager().UsePerPermissionForLeaving && !pSender.hasPermission("jobs.command.leave." + jobName.toLowerCase())) {
+	if (Jobs.getGCManager().UsePerPermissionForLeaving && !pSender.hasPermission("jobs.command.leave." + args[0].toLowerCase())) {
 	    pSender.sendMessage(Jobs.getLanguage().getMessage("general.error.permission"));
 	    return true;
 	}
@@ -41,10 +40,10 @@ public class leave implements Cmd {
 		Util.LEAVECONFIRM.add(uuid);
 
 		plugin.getServer().getScheduler().runTaskLater(plugin, () -> Util.LEAVECONFIRM.remove(uuid),
-		    20 * Jobs.getGCManager().ConfirmExpiryTime);
+		    (long) (20 * Jobs.getGCManager().ConfirmExpiryTime));
 
 		pSender.sendMessage(Jobs.getLanguage().getMessage("command.leave.confirmationNeed", "[jobname]",
-		    job.getNameWithColor(), "[time]", Jobs.getGCManager().ConfirmExpiryTime));
+		    job.getJobDisplayName(), "[time]", Jobs.getGCManager().ConfirmExpiryTime));
 		return true;
 	    }
 
@@ -54,7 +53,7 @@ public class leave implements Cmd {
 	JobsPlayer jPlayer = Jobs.getPlayerManager().getJobsPlayer(pSender);
 
 	if (Jobs.getPlayerManager().leaveJob(jPlayer, job))
-	    pSender.sendMessage(Jobs.getLanguage().getMessage("command.leave.success", "%jobname%", job.getNameWithColor()));
+	    pSender.sendMessage(Jobs.getLanguage().getMessage("command.leave.success", "%jobname%", job.getJobDisplayName()));
 	else
 	    pSender.sendMessage(Jobs.getLanguage().getMessage("general.error.job"));
 

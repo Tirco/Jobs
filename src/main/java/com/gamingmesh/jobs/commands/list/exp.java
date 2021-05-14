@@ -81,12 +81,12 @@ public class exp implements Cmd {
 
 		Player player = jPlayer.getPlayer();
 		if (player != null)
-		    player.sendMessage(Jobs.getLanguage().getMessage("command.exp.output.target", "%jobname%", job.getNameWithColor(), "%level%", prog.getLevel(), "%exp%", prog
+		    player.sendMessage(Jobs.getLanguage().getMessage("command.exp.output.target", "%jobname%", job.getJobDisplayName(), "%level%", prog.getLevel(), "%exp%", prog
 			.getExperience()));
 		sender.sendMessage(Jobs.getLanguage().getMessage("general.admin.success"));
 	    } else
 		sender.sendMessage(Jobs.getLanguage().getMessage("command.exp.error.nojob"));
-	} catch (Throwable e) {
+	} catch (Exception e) {
 	    sender.sendMessage(Jobs.getLanguage().getMessage("general.admin.error"));
 	}
 	return true;

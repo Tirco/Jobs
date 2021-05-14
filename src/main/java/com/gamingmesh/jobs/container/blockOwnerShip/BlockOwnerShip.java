@@ -28,6 +28,8 @@ public class BlockOwnerShip {
 
 	private final Map<UUID, List<blockLoc>> blockOwnerShips = new HashMap<>();
 
+	private final Jobs plugin = org.bukkit.plugin.java.JavaPlugin.getPlugin(Jobs.class);
+
 	public BlockOwnerShip(CMIMaterial type) {
 		// Type should be any type of furnace, smoker or brewing stand
 		if (type != CMIMaterial.FURNACE && type != CMIMaterial.LEGACY_BURNING_FURNACE
@@ -37,9 +39,8 @@ public class BlockOwnerShip {
 		}
 
 		material = type;
-		this.type = BlockTypes.getFromCMIMaterial(type);
 
-		switch (this.type) {
+		switch (this.type = BlockTypes.getFromCMIMaterial(type)) {
 		case BLAST_FURNACE:
 			metadataName = "jobsBlastFurnaceOwner";
 			break;
@@ -74,8 +75,7 @@ public class BlockOwnerShip {
 	}
 
 	public ownershipFeedback register(Player player, Block block) {
-		CMIMaterial mat = CMIMaterial.get(block);
-		if (type != BlockTypes.getFromCMIMaterial(mat)) {
+		if (type != BlockTypes.getFromCMIMaterial(CMIMaterial.get(block))) {
 			return ownershipFeedback.invalid;
 		}
 
@@ -92,9 +92,8 @@ public class BlockOwnerShip {
 		if (!data.isEmpty()) {
 			// only care about first
 			MetadataValue value = data.get(0);
-			String uuid = value.asString();
 
-			if (!uuid.equals(player.getUniqueId().toString())) {
+			if (!value.asString().equals(player.getUniqueId().toString())) {
 				return ownershipFeedback.notOwn;
 			}
 
@@ -111,7 +110,7 @@ public class BlockOwnerShip {
 		if (have >= max && max > 0)
 			return ownershipFeedback.tooMany;
 
-		block.setMetadata(metadataName, new FixedMetadataValue(Jobs.getInstance(), player.getUniqueId().toString()));
+		block.setMetadata(metadataName, new FixedMetadataValue(plugin, player.getUniqueId().toString()));
 
 		if (!Jobs.getGCManager().isBrewingStandsReassign() && !Jobs.getGCManager().isFurnacesReassign()
 				&& !Jobs.getGCManager().BlastFurnacesReassign && !Jobs.getGCManager().SmokerReassign) {
@@ -140,7 +139,7 @@ public class BlockOwnerShip {
 		List<blockLoc> ls = blockOwnerShips.getOrDefault(uuid, new ArrayList<>());
 		for (blockLoc one : ls) {
 			if (one.getLocation().equals(block.getLocation())) {
-				block.removeMetadata(metadataName, Jobs.getInstance());
+				block.removeMetadata(metadataName, plugin);
 				ls.remove(one);
 				return true;
 			}
@@ -155,7 +154,7 @@ public class BlockOwnerShip {
 			return 0;
 
 		for (blockLoc one : ls) {
-			one.getBlock().removeMetadata(metadataName, Jobs.getInstance());
+			one.getBlock().removeMetadata(metadataName, plugin);
 		}
 
 		return ls.size();
@@ -166,7 +165,8 @@ public class BlockOwnerShip {
 	}
 
 	public int getTotal(UUID uuid) {
-		return blockOwnerShips.getOrDefault(uuid, new ArrayList<>()).size();
+		List<blockLoc> list = blockOwnerShips.get(uuid);
+		return list == null ? 0 : list.size();
 	}
 
 	public void load() {
@@ -185,22 +185,30 @@ public class BlockOwnerShip {
 				: type == BlockTypes.BLAST_FURNACE ? "BlastFurnace"
 						: type == BlockTypes.BREWING_STAND ? "Brewing" : type == BlockTypes.SMOKER ? "Smoker" : "");
 
-		if (isReassignDisabled() || !f.getConfig().isConfigurationSection(path))
+		if (isReassignDisabled())
 			return;
 
-		int total = 0;
 		ConfigurationSection section = f.getConfig().getConfigurationSection(path);
+		if (section == null) {
+			return;
+		}
+
+		int total = 0;
 		for (String one : section.getKeys(false)) {
 			String value = section.getString(one);
 			List<String> ls = new ArrayList<>();
+
 			if (value.contains(";"))
 				ls.addAll(Arrays.asList(value.split(";")));
 			else
 				ls.add(value);
 
-			UUID uuid = UUID.fromString(one);
-			if (uuid == null)
+			UUID uuid;
+			try {
+				uuid = UUID.fromString(one);
+			} catch (IllegalArgumentException e) {
 				continue;
+			}
 
 			List<blockLoc> blist = new ArrayList<>();
 			for (String oneL : ls) {
@@ -209,8 +217,8 @@ public class BlockOwnerShip {
 				if (block == null)
 					continue;
 
-				block.removeMetadata(metadataName, Jobs.getInstance());
-				block.setMetadata(metadataName, new FixedMetadataValue(Jobs.getInstance(), one));
+				block.removeMetadata(metadataName, plugin);
+				block.setMetadata(metadataName, new FixedMetadataValue(plugin, one));
 
 				blist.add(bl);
 				total++;
@@ -239,9 +247,7 @@ public class BlockOwnerShip {
 			return;
 		}
 
-		if (!f.exists())
-			f.createNewFile();
-
+		f.createNewFile();
 		f.saveDefaultConfig();
 
 		if (isReassignDisabled()) {
@@ -255,6 +261,7 @@ public class BlockOwnerShip {
 
 		for (Map.Entry<UUID, List<blockLoc>> one : blockOwnerShips.entrySet()) {
 			String full = "";
+
 			for (blockLoc oneL : one.getValue()) {
 				if (!full.isEmpty())
 					full += ";";

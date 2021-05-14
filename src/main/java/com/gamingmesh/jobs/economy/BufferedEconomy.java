@@ -96,21 +96,20 @@ public class BufferedEconomy {
 	    // combine all payments using paymentCache
 	    while (!payments.isEmpty()) {
 		BufferedPayment payment = payments.remove();
-		totalAmount += payment.get(CurrencyType.MONEY);
+		double money = payment.get(CurrencyType.MONEY);
+
+		totalAmount += money;
 
 		if (Jobs.getGCManager().UseTaxes) {
-		    taxesAmount += payment.get(CurrencyType.MONEY) * (Jobs.getGCManager().TaxesAmount / 100.0);
+		    taxesAmount += money * (Jobs.getGCManager().TaxesAmount / 100.0);
 		}
 
 		OfflinePlayer offPlayer = payment.getOfflinePlayer();
 		if (offPlayer == null)
 		    continue;
 
-		UUID uuid = offPlayer.getUniqueId();
-		if (paymentCache.containsKey(uuid)) {
-		    BufferedPayment existing = paymentCache.get(uuid);
-
-		    double money = payment.get(CurrencyType.MONEY);
+		BufferedPayment existing = paymentCache.get(offPlayer.getUniqueId());
+		if (existing != null) {
 		    double points = payment.get(CurrencyType.POINTS);
 		    double exp = payment.get(CurrencyType.EXP);
 
@@ -135,7 +134,6 @@ public class BufferedEconomy {
 		    existing.set(CurrencyType.POINTS, existing.get(CurrencyType.POINTS) + points);
 		    existing.set(CurrencyType.EXP, existing.get(CurrencyType.EXP) + exp);
 		} else {
-		    double money = payment.get(CurrencyType.MONEY);
 		    double points = payment.get(CurrencyType.POINTS);
 
 		    if (Jobs.getGCManager().TakeFromPlayersPayment && Jobs.getGCManager().UseTaxes &&
@@ -158,22 +156,21 @@ public class BufferedEconomy {
 			payment.set(CurrencyType.POINTS, points);
 		    }
 
-		    paymentCache.put(uuid, payment);
+		    paymentCache.put(offPlayer.getUniqueId(), payment);
 		}
 	    }
 
 	    String serverAccountName = Jobs.getGCManager().ServerAccountName;
-	    String serverTaxesAccountName = Jobs.getGCManager().ServertaxesAccountName;
 
 	    if (serverTaxesAccount == null)
-		serverTaxesAccount = Bukkit.getOfflinePlayer(serverTaxesAccountName);
+		serverTaxesAccount = Bukkit.getOfflinePlayer(Jobs.getGCManager().ServertaxesAccountName);
 
 	    if (Jobs.getGCManager().UseTaxes && Jobs.getGCManager().TransferToServerAccount && serverTaxesAccount != null) {
 		if (taxesAmount > 0) {
 		    economy.depositPlayer(serverTaxesAccount, taxesAmount);
 		}
 
-		if (serverTaxesAccount.isOnline() && Jobs.getGCManager().ActionBarsMessageByDefault) {
+		if (Jobs.getGCManager().ActionBarsMessageByDefault && serverTaxesAccount.isOnline()) {
 		    ActionBarManager.send(Bukkit.getPlayer(serverAccountName),
 			Jobs.getLanguage().getMessage("message.taxes", "[amount]", (int) (totalAmount * 100) / 100.0));
 		}
@@ -216,9 +213,8 @@ public class BufferedEconomy {
 		// Show players payment stuff
 		showPayment(payment);
 
-		if (payment.getOfflinePlayer().isOnline() && Version.getCurrent().isHigher(Version.v1_8_R3)) {
-		    JobsPlayer jPlayer = Jobs.getPlayerManager().getJobsPlayer(payment.getOfflinePlayer().getUniqueId());
-		    Jobs.getBBManager().ShowJobProgression(jPlayer);
+		if (Version.getCurrent().isHigher(Version.v1_8_R3) && payment.getOfflinePlayer().isOnline()) {
+		    Jobs.getBBManager().ShowJobProgression(Jobs.getPlayerManager().getJobsPlayer(payment.getOfflinePlayer().getUniqueId()));
 		}
 	    }
 
@@ -242,8 +238,8 @@ public class BufferedEconomy {
      * @param payment {@link BufferedPayment}
      */
     public void showPayment(BufferedPayment payment) {
-	if (payment.getOfflinePlayer() == null || !payment.getOfflinePlayer().isOnline() || !payment.containsPayment()
-	    || Jobs.getGCManager().aBarSilentMode)
+	if (Jobs.getGCManager().aBarSilentMode || payment.getOfflinePlayer() == null || !payment.getOfflinePlayer().isOnline()
+	    || !payment.containsPayment())
 	    return;
 
 	UUID playerUUID = payment.getOfflinePlayer().getUniqueId();

@@ -25,26 +25,27 @@ public class area implements Cmd {
 
 	Player player = (Player) sender;
 
-	RestrictedAreaManager ra = Jobs.getRestrictedAreaManager();
-
 	if (args.length == 3) {
 	    if (args[0].equalsIgnoreCase("add")) {
 		if (!Jobs.hasPermission(player, "jobs.area.add", true))
 		    return true;
 
-		String name = args[1];
 		double bonus = 0D;
 		try {
 		    bonus = Double.parseDouble(args[2]);
 		} catch (NumberFormatException e) {
 		    return false;
 		}
+
 		boolean wg = false;
 
+		String name = args[1];
 		if (name.startsWith("wg:")) {
 		    wg = true;
 		    name = name.substring("wg:".length(), name.length());
 		}
+
+		RestrictedAreaManager ra = Jobs.getRestrictedAreaManager();
 
 		if (ra.isExist(name)) {
 		    sender.sendMessage(Jobs.getLanguage().getMessage("command.area.output.exist"));
@@ -57,11 +58,13 @@ public class area implements Cmd {
 		    return true;
 		}
 		if (wg && HookManager.getWorldGuardManager() != null) {
-		    if (HookManager.getWorldGuardManager().getProtectedRegionByName(name) == null) {
+		    com.sk89q.worldguard.protection.regions.ProtectedRegion protectedRegion = HookManager.getWorldGuardManager().getProtectedRegionByName(name);
+
+		    if (protectedRegion == null) {
 			sender.sendMessage(Jobs.getLanguage().getMessage("command.area.output.wgDontExist"));
 			return true;
 		    }
-		    name = HookManager.getWorldGuardManager().getProtectedRegionByName(name).getId();
+		    name = protectedRegion.getId();
 		}
 
 		if (!wg)
@@ -78,6 +81,7 @@ public class area implements Cmd {
 		if (!Jobs.hasPermission(player, "jobs.area.remove", true))
 		    return true;
 
+		RestrictedAreaManager ra = Jobs.getRestrictedAreaManager();
 		String name = args[1];
 
 		if (!ra.isExist(name)) {

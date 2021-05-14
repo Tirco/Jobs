@@ -31,13 +31,19 @@ public class promote implements Cmd {
 	try {
 	    // check if player already has the job
 	    if (jPlayer.isInJob(job)) {
-		Integer levelsGained = Integer.parseInt(args[2]);
+		int levelsGained = -1;
+		try {
+		    levelsGained = Integer.parseInt(args[2]);
+		} catch (NumberFormatException ex) {
+		    return true;
+		}
+
 		Jobs.getPlayerManager().promoteJob(jPlayer, job, levelsGained);
 
 		Player player = jPlayer.getPlayer();
 		if (player != null)
 		    player.sendMessage(Jobs.getLanguage().getMessage("command.promote.output.target",
-			"%jobname%", job.getNameWithColor(),
+			"%jobname%", job.getJobDisplayName(),
 			"%levelsgained%", levelsGained));
 
 		sender.sendMessage(Jobs.getLanguage().getMessage("general.admin.success"));

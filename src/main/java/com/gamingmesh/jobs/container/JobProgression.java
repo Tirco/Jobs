@@ -137,15 +137,15 @@ public class JobProgression {
     }
 
     /**
-     * Set the level of this job
-     * @param level - the new level for this job
+     * Sets the level of this job progression
+     * 
+     * @param level the new level for this job
+     * @return true if this progression can level up
      */
-    public void setLevel(int level) {
-//		synchronized (jPlayer.saveLock) {
+    public boolean setLevel(int level) {
 	jPlayer.setSaved(false);
 	this.level = level;
-	reloadMaxExperienceAndCheckLevelUp();
-//		}
+	return reloadMaxExperienceAndCheckLevelUp();
     }
 
     /**
@@ -154,14 +154,14 @@ public class JobProgression {
     public void reloadMaxExperience() {
 	Map<String, Double> param = new HashMap<>();
 	param.put("joblevel", (double) level);
-	param.put("numjobs", (double) jPlayer.getJobProgression().size());
+	param.put("numjobs", (double) jPlayer.progression.size());
 	maxExperience = (int) job.getMaxExp(param);
     }
 
     public int getMaxExperience(int level) {
 	Map<String, Double> param = new HashMap<>();
 	param.put("joblevel", (double) level);
-	param.put("numjobs", (double) jPlayer.getJobProgression().size());
+	param.put("numjobs", (double) jPlayer.progression.size());
 	return (int) job.getMaxExp(param);
     }
 
@@ -246,7 +246,7 @@ public class JobProgression {
     }
 
     public String getRejoinTimeMessage() {
-	return leftOn == null ? "" : TimeManage.to24hourShort(leftOn + getJob().getRejoinCd() - System.currentTimeMillis());
+	return leftOn == null ? "" : TimeManage.to24hourShort(leftOn + job.getRejoinCd() - System.currentTimeMillis());
     }
 
     public Double getLastExperience() {

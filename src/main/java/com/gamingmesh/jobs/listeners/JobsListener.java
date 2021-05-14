@@ -58,6 +58,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
+import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -95,11 +96,13 @@ public class JobsListener implements Listener {
     }
 
     private boolean isInteractOk(Player player) {
-	if (!interactDelay.containsKey(player.getUniqueId())) {
+	Long delay = interactDelay.get(player.getUniqueId());
+	if (delay == null) {
 	    interactDelay.put(player.getUniqueId(), System.currentTimeMillis());
 	    return true;
 	}
-	long time = System.currentTimeMillis() - interactDelay.get(player.getUniqueId());
+
+	long time = System.currentTimeMillis() - delay;
 	interactDelay.put(player.getUniqueId(), System.currentTimeMillis());
 	return time > 100;
     }
@@ -125,8 +128,8 @@ public class JobsListener implements Listener {
 	if (player.getGameMode() == GameMode.CREATIVE)
 	    event.setCancelled(true);
 
-	Block block = event.getClickedBlock();
-	Location loc = block.getLocation();
+	Location loc = event.getClickedBlock().getLocation();
+
 	if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
 	    Jobs.getSelectionManager().placeLoc1(player, loc);
 	    player.sendMessage(Jobs.getLanguage().getMessage("command.area.output.selected1", "%x%", loc.getBlockX(), "%y%", loc.getBlockY(), "%z%", loc.getBlockZ()));
@@ -138,8 +141,7 @@ public class JobsListener implements Listener {
 	}
 
 	if (Jobs.getSelectionManager().hasPlacedBoth(player)) {
-	    JobsAreaSelectionEvent jobsAreaSelectionEvent = new JobsAreaSelectionEvent(player, Jobs.getSelectionManager().getSelectionCuboid(player));
-	    plugin.getServer().getPluginManager().callEvent(jobsAreaSelectionEvent);
+	    plugin.getServer().getPluginManager().callEvent(new JobsAreaSelectionEvent(player, Jobs.getSelectionManager().getSelectionCuboid(player)));
 	}
     }
 
@@ -155,10 +157,6 @@ public class JobsListener implements Listener {
 
 //    @EventHandler(priority = EventPriority.MONITOR)
 //    public void onPlayerJoinMonitor(PlayerJoinEvent event) {
-//	// make sure plugin is enabled
-//	if (!plugin.isEnabled())
-//	    return;
-//
 //	/*
 //	 * We need to recalculate again to check for world permission and revoke permissions
 //	 * if we don't have world permission (from some other permission manager).  It's 
@@ -210,7 +208,8 @@ public class JobsListener implements Listener {
 	}
 
 	player.performCommand("jobs " + command + " " + CMIChatColor.stripColor(plugin.getComplement().getLine(sign, 2))
-		+ " " + CMIChatColor.stripColor(plugin.getComplement().getLine(sign, 3)));
+	+ " " + CMIChatColor.stripColor(plugin.getComplement()
+		.getLine(sign, 3)).replace(" ", "")); // Replace trailing spaces at 3rd line to parse command
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
@@ -230,8 +229,7 @@ public class JobsListener implements Listener {
 	    return;
 	}
 
-	jobsSign jSign = Jobs.getSignUtil().getSign(block.getLocation());
-	if (jSign == null)
+	if (Jobs.getSignUtil().getSign(block.getLocation()) == null)
 	    return;
 
 	if (!player.hasPermission("jobs.command.signs")) {
@@ -267,15 +265,14 @@ public class JobsListener implements Listener {
 	    return;
 	}
 
-	Sign sign = (Sign) block.getState();
-	final Job job = Jobs.getJob(CMIChatColor.stripColor(plugin.getComplement().getLine(sign, 2)).toLowerCase());
+	final Job job = Jobs.getJob(CMIChatColor.stripColor(plugin.getComplement().getLine(event, 2)).toLowerCase());
 	if (type == SignTopType.toplist && job == null) {
 	    player.sendMessage(Jobs.getLanguage().getMessage("command.top.error.nojob"));
 	    return;
 	}
 
 	boolean special = false;
-	String numberString = CMIChatColor.stripColor(plugin.getComplement().getLine(sign, 3)).toLowerCase();
+	String numberString = CMIChatColor.stripColor(plugin.getComplement().getLine(event, 3)).toLowerCase();
 	if (numberString.contains("s")) {
 	    numberString = numberString.replace("s", "");
 	    special = true;
@@ -291,7 +288,7 @@ public class JobsListener implements Listener {
 
 	jobsSign signInfo = new jobsSign();
 
-	signInfo.setLoc(sign.getLocation());
+	signInfo.setLoc(block.getLocation());
 	signInfo.setNumber(number);
 	if (job != null)
 	    signInfo.setJobName(job.getName());
@@ -304,7 +301,7 @@ public class JobsListener implements Listener {
 
 	event.setCancelled(true);
 
-	plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> signUtil.SignUpdate(job, type), 1L);
+	plugin.getServer().getScheduler().runTaskLater(plugin, () -> signUtil.signUpdate(job, type), 1L);
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -312,11 +309,11 @@ public class JobsListener implements Listener {
 	if (!Jobs.getGCManager().SignsEnabled)
 	    return;
 
+	String line1 = CMIChatColor.stripColor(plugin.getComplement().getLine(event, 1));
+
 	if (CMIChatColor.stripColor(plugin.getComplement().getLine(event, 0))
-	    .equalsIgnoreCase(CMIChatColor.stripColor(Jobs.getLanguage().getMessage("signs.topline"))) && !CMIChatColor.stripColor(
-	    plugin.getComplement().getLine(event, 1))
-	    .equalsIgnoreCase("toplist"))
-	    plugin.getComplement().setLine(event, 0, convert(Jobs.getLanguage().getMessage("signs.topline")));
+	    .equalsIgnoreCase(CMIChatColor.stripColor(Jobs.getLanguage().getMessage("signs.topline"))) && !line1.equalsIgnoreCase("toplist"))
+	    event.setLine(0, convert(Jobs.getLanguage().getMessage("signs.topline")));
 	else
 	    return;
 
@@ -326,10 +323,11 @@ public class JobsListener implements Listener {
 	    return;
 	}
 
-	String command = CMIChatColor.stripColor(plugin.getComplement().getLine(event, 1)).toLowerCase();
 	for (String key : Jobs.getLanguageManager().signKeys) {
-	    if (command.equalsIgnoreCase(CMIChatColor.stripColor(Jobs.getLanguage().getMessage("signs.secondline." + key)))) {
-		plugin.getComplement().setLine(event, 1, convert(Jobs.getLanguage().getMessage("signs.secondline." + key)));
+	    String secondLine = Jobs.getLanguage().getMessage("signs.secondline." + key);
+
+	    if (line1.equalsIgnoreCase(CMIChatColor.stripColor(secondLine))) {
+		event.setLine(1, convert(secondLine));
 		break;
 	    }
 	}
@@ -339,7 +337,7 @@ public class JobsListener implements Listener {
 	    return;
 
 	String color = Jobs.getGCManager().SignsColorizeJobName ? job.getChatColor().toString() : "";
-	plugin.getComplement().setLine(event, 2, convert(color + job.getName()));
+	event.setLine(2, convert(color + job.getName()));
     }
 
     private final Pattern pattern = Pattern.compile("&([0-9a-fk-or])");
@@ -351,14 +349,22 @@ public class JobsListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onWorldLoad(WorldLoadEvent event) {
 	PluginManager pm = plugin.getServer().getPluginManager();
-	if (pm.getPermission("jobs.world." + event.getWorld().getName().toLowerCase()) == null)
-	    pm.addPermission(new Permission("jobs.world." + event.getWorld().getName().toLowerCase(), PermissionDefault.TRUE));
+	String name = event.getWorld().getName().toLowerCase();
+	if (pm.getPermission("jobs.world." + name) == null)
+	    pm.addPermission(new Permission("jobs.world." + name, PermissionDefault.TRUE));
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onCropGrown(final BlockGrowEvent event) {
 	if (Jobs.getGCManager().canPerformActionInWorld(event.getBlock().getWorld())) {
-	    plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> Jobs.getBpManager().remove(event.getBlock()), 1L);
+	    plugin.getServer().getScheduler().runTaskLater(plugin, () -> Jobs.getBpManager().remove(event.getBlock()), 1L);
+	}
+    }
+
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onTreeGrown(final StructureGrowEvent event) {
+	if (!event.getBlocks().isEmpty() && Jobs.getGCManager().canPerformActionInWorld(event.getBlocks().get(0).getWorld())) {
+	    plugin.getServer().getScheduler().runTaskLater(plugin, () -> event.getBlocks().forEach(blockState -> Jobs.getBpManager().remove(blockState.getBlock())), 1L);
 	}
     }
 
@@ -423,7 +429,9 @@ public class JobsListener implements Listener {
 	}
 
 	for (Entry<Enchantment, Integer> oneE : enchants.entrySet()) {
-	    if (oneItem.getEnchants().containsKey(oneE.getKey()) && oneItem.getEnchants().get(oneE.getKey()) <= oneE.getValue()) {
+	    Integer value = oneItem.getEnchants().get(oneE.getKey());
+
+	    if (value != null && value <= oneE.getValue()) {
 		return true;
 	    }
 	}
@@ -441,10 +449,8 @@ public class JobsListener implements Listener {
 
 	Chunk from = event.getFrom().getChunk();
 	Chunk to = event.getTo().getChunk();
-	if (from == to)
-	    return;
-
-	plugin.getServer().getPluginManager().callEvent(new JobsChunkChangeEvent(event.getPlayer(), from, to));
+	if (from != to)
+	    plugin.getServer().getPluginManager().callEvent(new JobsChunkChangeEvent(event.getPlayer(), from, to));
     }
 
     @EventHandler
@@ -453,11 +459,10 @@ public class JobsListener implements Listener {
 	    return;
 
 	boolean shift = false, numberkey = false;
-	ClickType click = event.getClick();
-	if (click == ClickType.SHIFT_LEFT || click == ClickType.SHIFT_RIGHT)
+	if (event.getClick() == ClickType.SHIFT_LEFT || event.getClick() == ClickType.SHIFT_RIGHT)
 	    shift = true;
 
-	if (click == ClickType.NUMBER_KEY)
+	if (event.getClick() == ClickType.NUMBER_KEY)
 	    numberkey = true;
 
 	SlotType slotType = event.getSlotType();
@@ -530,19 +535,18 @@ public class JobsListener implements Listener {
 
     @EventHandler
     public void playerInteractEvent(PlayerInteractEvent event) {
-	Action action = event.getAction();
-	if (action == Action.PHYSICAL)
+	if (event.getAction() == Action.PHYSICAL)
 	    return;
 
-	if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK)
+	if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK)
 	    return;
 
 	ArmorTypes newArmorType = ArmorTypes.matchType(event.getItem());
 	if (newArmorType == null)
 	    return;
 
-	Player player = event.getPlayer();
-	PlayerInventory inv = player.getInventory();
+	PlayerInventory inv = event.getPlayer().getInventory();
+
 	if (newArmorType == ArmorTypes.HELMET &&
 	    inv.getHelmet() == null ||
 	    (newArmorType == ArmorTypes.CHESTPLATE || newArmorType == ArmorTypes.ELYTRA) &&
@@ -551,15 +555,14 @@ public class JobsListener implements Listener {
 		inv.getLeggings() == null ||
 	    newArmorType == ArmorTypes.BOOTS &&
 		inv.getBoots() == null) {
-	    JobsArmorChangeEvent armorEquipEvent = new JobsArmorChangeEvent(player, EquipMethod.HOTBAR, ArmorTypes.matchType(event.getItem()), null, event
+	    JobsArmorChangeEvent armorEquipEvent = new JobsArmorChangeEvent(event.getPlayer(), EquipMethod.HOTBAR, ArmorTypes.matchType(event.getItem()), null, event
 		.getItem());
 	    plugin.getServer().getPluginManager().callEvent(armorEquipEvent);
 	    if (armorEquipEvent.isCancelled()) {
 		event.setCancelled(true);
-		player.updateInventory();
+		event.getPlayer().updateInventory();
 	    }
 	}
-
     }
 
     @EventHandler
@@ -569,7 +572,7 @@ public class JobsListener implements Listener {
 
 	ItemStack item = event.getItem();
 	ArmorTypes type = ArmorTypes.matchType(item);
-	if (ArmorTypes.matchType(item) == null)
+	if (type == null)
 	    return;
 
 	Location loc = event.getBlock().getLocation();
@@ -623,24 +626,25 @@ public class JobsListener implements Listener {
     }
 
     @EventHandler
-    public void JobsArmorChangeEvent(JobsArmorChangeEvent event) {
+    public void jobsArmorChangeEvent(JobsArmorChangeEvent event) {
 	Jobs.getPlayerManager().resetItemBonusCache(event.getPlayer().getUniqueId());
     }
 
     @EventHandler
-    public void PlayerItemHeldEvent(PlayerItemHeldEvent event) {
+    public void playerItemHeldEvent(PlayerItemHeldEvent event) {
 	Jobs.getPlayerManager().resetItemBonusCache(event.getPlayer().getUniqueId());
     }
 
     @EventHandler
-    public void PlayerItemBreakEvent(PlayerItemBreakEvent event) {
+    public void playerItemBreakEvent(PlayerItemBreakEvent event) {
 	Jobs.getPlayerManager().resetItemBonusCache(event.getPlayer().getUniqueId());
     }
 
     @EventHandler
-    public void PlayerItemBreakEvent(InventoryClickEvent event) {
+    public void playerItemBreakEvent(InventoryClickEvent event) {
 	Jobs.getPlayerManager().resetItemBonusCache(((Player) event.getWhoClicked()).getUniqueId());
     }
+
 
     @EventHandler
     public void onPlayerHandSwap(PlayerSwapHandItemsEvent event) {

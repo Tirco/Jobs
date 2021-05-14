@@ -24,8 +24,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
+import org.bukkit.FireworkEffect;
 import org.bukkit.World;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
@@ -39,20 +42,15 @@ import com.gamingmesh.jobs.CMILib.ConfigReader;
 import com.gamingmesh.jobs.CMILib.Version;
 import com.gamingmesh.jobs.container.CurrencyLimit;
 import com.gamingmesh.jobs.container.CurrencyType;
-import com.gamingmesh.jobs.container.Schedule;
 import com.gamingmesh.jobs.resources.jfep.Parser;
 
 public class GeneralConfigManager {
 
     public List<Integer> BroadcastingLevelUpLevels = new ArrayList<>();
-    public List<String> FwColors = new ArrayList<>(), DisabledWorldsList = new ArrayList<>();
-    /**
-     * @deprecated use {@link ScheduleManager}
-     */
-    @Deprecated
-    public List<Schedule> BoostSchedule = new ArrayList<>();
+    public List<String> DisabledWorldsList = new ArrayList<>();
 
     public final Map<CMIMaterial, Map<Enchantment, Integer>> whiteListedItems = new HashMap<>();
+
     private final Map<CurrencyType, CurrencyLimit> currencyLimitUse = new HashMap<>();
     private final Map<CurrencyType, Double> generalMulti = new HashMap<>();
     private final Map<String, List<String>> commandArgs = new HashMap<>();
@@ -63,39 +61,40 @@ public class GeneralConfigManager {
     protected boolean economyAsync, isBroadcastingSkillups, isBroadcastingLevelups, payInCreative, payExploringWhenFlying,
 	addXpPlayer, hideJobsWithoutPermission, payNearSpawner, modifyChat, saveOnDisconnect, MultiServerCompatability;
 
-    public String modifyChatPrefix, modifyChatSuffix, modifyChatSeparator, FireworkType, SoundLevelupSound,
+    public String modifyChatPrefix, modifyChatSuffix, modifyChatSeparator, SoundLevelupSound,
 	SoundTitleChangeSound, ServerAccountName, ServertaxesAccountName, localeString = "";
     private String getSelectionTool, DecimalPlacesMoney, DecimalPlacesExp, DecimalPlacesPoints;
 
     public int jobExpiryTime, BlockProtectionDays, FireworkPower, ShootTime,
 	globalblocktimer, CowMilkingTimer, InfoUpdateInterval, JobsTopAmount, PlaceholdersPage, ConfirmExpiryTime,
-	SegmentCount, BossBarTimer, AutoJobJoinDelay, DBCleaningJobsLvl, DBCleaningUsersDays, BlastFurnacesMaxDefault, SmokersMaxDefault;
+	SegmentCount, BossBarTimer, AutoJobJoinDelay, DBCleaningJobsLvl, DBCleaningUsersDays, BlastFurnacesMaxDefault, SmokersMaxDefault,
+	levelLossPercentageFromMax, levelLossPercentage, SoundLevelupVolume, SoundLevelupPitch, SoundTitleChangeVolume,
+	SoundTitleChangePitch, ToplistInScoreboardInterval;
+
     protected int savePeriod, maxJobs, economyBatchDelay;
     private int ResetTimeHour, ResetTimeMinute, DailyQuestsSkips, FurnacesMaxDefault, BrewingStandsMaxDefault,
 	BrowseAmountToShow, JobsGUIRows, JobsGUIBackButton, JobsGUINextButton, JobsGUIStartPosition, JobsGUIGroupAmount, JobsGUISkipAmount;
 
-    public double skipQuestCost, MinimumOveralPaymentLimit, MinimumOveralPointsLimit, MonsterDamagePercentage,
-	DynamicPaymentMaxPenalty, DynamicPaymentMaxBonus, TaxesAmount;
-
-    public Double TreeFellerMultiplier, gigaDrillMultiplier, superBreakerMultiplier;
-
-    public Integer levelLossPercentageFromMax, levelLossPercentage, SoundLevelupVolume, SoundLevelupPitch, SoundTitleChangeVolume,
-	SoundTitleChangePitch, ToplistInScoreboardInterval;
+    public double skipQuestCost, MinimumOveralPaymentLimit, minimumOveralExpLimit, MinimumOveralPointsLimit, MonsterDamagePercentage,
+	DynamicPaymentMaxPenalty, DynamicPaymentMaxBonus, TaxesAmount, TreeFellerMultiplier, gigaDrillMultiplier, superBreakerMultiplier;
 
     public float maxPaymentCurveFactor;
 
     private boolean FurnacesReassign, BrewingStandsReassign, useTnTFinder = false, ShowNewVersion;
+
+    private FireworkEffect fireworkEffect;
+
     public boolean useBlockProtection, enableSchedule, PayForRenaming, PayForEnchantingOnAnvil, PayForEachCraft, SignsEnabled,
 	SignsColorizeJobName, ShowToplistInScoreboard, useGlobalTimer, useSilkTouchProtection, UseCustomNames,
 	PreventSlimeSplit, PreventMagmaCubeSplit, PreventHopperFillUps, PreventBrewingStandFillUps,
 	BrowseUseNewLook, payExploringWhenGliding = false, disablePaymentIfMaxLevelReached, disablePaymentIfRiding,
 	boostedItemsInOffHand = false, boostedItemsInMainHand, boostedArmorItems/*, preventCropResizePayment*/, payItemDurabilityLoss,
-	applyToNegativeIncome, useMinimumOveralPayment, useMinimumOveralPoints, useBreederFinder,
+	applyToNegativeIncome, useMinimumOveralPayment, useMinimumOveralPoints, useMinimumOveralExp, useBreederFinder,
 	CancelCowMilking, fixAtMaxLevel, TitleChangeChat, TitleChangeActionBar, LevelChangeChat,
 	LevelChangeActionBar, SoundLevelupUse, SoundTitleChangeUse, UseServerAccount, EmptyServerAccountChat,
 	EmptyServerAccountActionBar, ActionBarsMessageByDefault, aBarSilentMode, ShowTotalWorkers, ShowPenaltyBonus, useDynamicPayment,
-	JobsGUIOpenOnBrowse, JobsGUIShowChatBrowse, JobsGUISwitcheButtons, ShowActionNames,
-	DisableJoiningJobThroughGui, FireworkLevelupUse, UseRandom, UseFlicker, UseTrail, UsePerPermissionForLeaving,
+	JobsGUIOpenOnBrowse, JobsGUIShowChatBrowse, JobsGUISwitcheButtons, ShowActionNames, hideItemAttributes,
+	DisableJoiningJobThroughGui, FireworkLevelupUse, UseRandom, UsePerPermissionForLeaving,
 	EnableConfirmation, FilterHiddenPlayerFromTabComplete, jobsInfoOpensBrowse, MonsterDamageUse, useMaxPaymentCurve,
 	hideJobsInfoWithoutPermission, UseTaxes, TransferToServerAccount, TakeFromPlayersPayment, AutoJobJoinUse, AllowDelevel,
 	BossBarEnabled = false, BossBarShowOnEachAction = false, BossBarsMessageByDefault = false, ExploreCompact, DBCleaningJobsUse, DBCleaningUsersUse,
@@ -103,7 +102,8 @@ public class GeneralConfigManager {
 	LoggingUse, payForCombiningItems, BlastFurnacesReassign = false, SmokerReassign = false, payForStackedEntities,
 	payForEachVTradeItem, titleMessageMaxLevelReached, allowEnchantingBoostedItems, allowBreakPaymentForOreGenerators;
 
-    public ItemStack guiBackButton, guiNextButton, guiFiller;
+    public ItemStack guiBackButton, guiNextButton;
+    public CMIMaterial guiFiller;
 
     public Parser DynamicPaymentEquation;
 
@@ -270,7 +270,7 @@ public class GeneralConfigManager {
 	// Item/Block/mobs name list
 	Jobs.getNameTranslatorManager().load();
 	// signs information
-	Jobs.getSignUtil().LoadSigns();
+	Jobs.getSignUtil().loadSigns();
 	// Shop
 	Jobs.getShopManager().load();
     }
@@ -307,8 +307,7 @@ public class GeneralConfigManager {
 	Jobs.getDBManager().start();
 
 	c.addComment("save-period", "How often in minutes you want it to save. This must be a non-zero number");
-	c.get("save-period", 10);
-	if (c.getInt("save-period") <= 0) {
+	if (c.get("save-period", 10) <= 0) {
 	    Jobs.getPluginLogger().severe("Save period must be greater than 0! Defaulting to 10 minutes!");
 	    c.set("save-period", 10);
 	}
@@ -483,12 +482,12 @@ public class GeneralConfigManager {
 	    String ench = null;
 
 	    if (one.contains("=")) {
-		String[] split = one.split("=");
+		String[] split = one.split("=", 2);
 		mName = split[0];
 		ench = split[1];
 	    }
 
-	    String value = ench != null && ench.contains("-") ? ench.split("-")[1] : null;
+	    String value = ench != null && ench.contains("-") ? ench.split("-", 2)[1] : null;
 	    if (value != null && ench != null) {
 		ench = ench.substring(0, ench.length() - (value.length() + 1));
 	    }
@@ -560,15 +559,26 @@ public class GeneralConfigManager {
 	applyToNegativeIncome = c.get("Economy.ApplyToNegativeIncome", false);
 
 	c.addComment("Economy.MinimumOveralPayment.use",
-	    "Determines minimum payment. In example if player uses McMMO treefeller and earns only 20%, but at same time he gets 25% penalty from dynamic payment. He can 'get' negative amount of money",
+	    "Determines minimum payment.",
+	    "In example if player uses McMMO treefeller and earns only 20%, but at same time player gets 25% penalty from dynamic payment.",
+	    "The player can 'get' negative amount of money",
 	    "This will limit it to particular percentage", "Works only when original payment is above 0");
 	useMinimumOveralPayment = c.get("Economy.MinimumOveralPayment.use", true);
 	MinimumOveralPaymentLimit = c.get("Economy.MinimumOveralPayment.limit", 0.1);
 	c.addComment("Economy.MinimumOveralPoints.use",
-	    "Determines minimum payment. In example if player uses McMMO treefeller and earns only 20%, but at same time he gets 25% penalty from dynamic payment. He can 'get' negative amount of money",
+	    "Determines minimum payment for points.",
+	    "In example if player uses McMMO treefeller and earns only 20%, but at same time player gets 25% penalty from dynamic payment.",
+	    "The player can 'get' negative amount of points",
 	    "This will limit it to particular percentage", "Works only when original payment is above 0");
 	useMinimumOveralPoints = c.get("Economy.MinimumOveralPoints.use", true);
 	MinimumOveralPointsLimit = c.get("Economy.MinimumOveralPoints.limit", 0.1);
+	c.addComment("Economy.MinimumOveralExp.use",
+	    "Determines minimum payment for experience.",
+	    "In example if player uses McMMO treefeller and earns only 20%, but at same time player gets 25% penalty from dynamic payment.",
+	    "The player can 'get' negative amount of experience",
+	    "This will limit it to particular percentage", "Works only when original payment is above 0");
+	useMinimumOveralExp = c.get("Economy.MinimumOveralExp.use", true);
+	minimumOveralExpLimit = c.get("Economy.MinimumOveralExp.limit", 0.1);
 
 	c.addComment("Economy.DynamicPayment.use", "Do you want to use dynamic payment dependent on how many players already working for jobs?",
 	    "This can help automatically lift up payments for not so popular jobs and lower for most popular ones");
@@ -871,17 +881,14 @@ allowBreakPaymentForOreGenerators = c.get("ExploitProtections.General.AllowBreak
 	LevelChangeChat = c.get("ShowChatMessage.OnLevelChange", true);
 	EmptyServerAccountChat = c.get("ShowChatMessage.OnEmptyServerAccount", true);
 
-	c.addComment("SendTitleMessageWhenMaxLevelReached", "Send title and chat message when a player reached the maximum level in a job.");
-	titleMessageMaxLevelReached = c.get("SendTitleMessageWhenMaxLevelReached", false);
-
-	c.addComment("Sounds", "Sounds", "Extra sounds on some events",
+	c.addComment("Sounds", "Extra sounds on some events",
 	    "All sounds can be found in https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Sound.html");
 	SoundLevelupUse = c.get("Sounds.LevelUp.use", true);
-	SoundLevelupSound = c.get("Sounds.LevelUp.sound", Version.isCurrentLower(Version.v1_9_R1) ? "LEVEL_UP " : "ENTITY_PLAYER_LEVELUP");
+	SoundLevelupSound = c.get("Sounds.LevelUp.sound", Version.isCurrentLower(Version.v1_9_R1) ? "LEVEL_UP " : "ENTITY_PLAYER_LEVELUP").toUpperCase();
 	SoundLevelupVolume = c.get("Sounds.LevelUp.volume", 1);
 	SoundLevelupPitch = c.get("Sounds.LevelUp.pitch", 3);
 	SoundTitleChangeUse = c.get("Sounds.TitleChange.use", true);
-	SoundTitleChangeSound = c.get("Sounds.TitleChange.sound", Version.isCurrentLower(Version.v1_9_R1) ? "LEVEL_UP " : "ENTITY_PLAYER_LEVELUP");
+	SoundTitleChangeSound = c.get("Sounds.TitleChange.sound", Version.isCurrentLower(Version.v1_9_R1) ? "LEVEL_UP " : "ENTITY_PLAYER_LEVELUP").toUpperCase();
 	SoundTitleChangeVolume = c.get("Sounds.TitleChange.volume", 1);
 	SoundTitleChangePitch = c.get("Sounds.TitleChange.pitch", 3);
 
@@ -890,14 +897,53 @@ allowBreakPaymentForOreGenerators = c.get("ExploitProtections.General.AllowBreak
 	c.addComment("Fireworks.LevelUp.Random", "Makes the firework to randomize, such as random colors, type, power and so on.",
 	    "These are under settings will not be work, when this enabled.");
 	UseRandom = c.get("Fireworks.LevelUp.Random", true);
-	UseFlicker = c.get("Fireworks.LevelUp.flicker", true);
-	UseTrail = c.get("Fireworks.LevelUp.trail", true);
-	c.addComment("Fireworks.LevelUp.type", "Firework types",
+
+	boolean useFlicker = c.get("Fireworks.LevelUp.flicker", true);
+	boolean useTrail = c.get("Fireworks.LevelUp.trail", true);
+
+	c.addComment("Fireworks.LevelUp.type", "Firework type",
 	    "All types can be found in https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/FireworkEffect.Type.html");
-	FireworkType = c.get("Fireworks.LevelUp.type", "STAR");
-	FwColors = c.get("Fireworks.LevelUp.colors", Arrays.asList("230,0,0", "0,90,0", "0,0,104"));
+
+	FireworkEffect.Type fwType = FireworkEffect.Type.STAR;
+	try {
+	    fwType = FireworkEffect.Type.valueOf(c.get("Fireworks.LevelUp.type", "STAR").toUpperCase());
+	} catch (IllegalArgumentException ex) {
+	}
+
+	List<String> fwColors = c.get("Fireworks.LevelUp.colors", Arrays.asList("230,0,0", "0,90,0", "0,0,104"));
+
+	if (!UseRandom) {
+	    Color[] colors = new Color[fwColors.size()];
+	    Pattern comma = Pattern.compile(",", 16);
+
+	    for (int s = 0; s < colors.length; s++) {
+		String[] sSplit = comma.split(fwColors.get(s));
+		if (sSplit.length < 3)
+		    continue;
+
+		int[] colorRGB = new int[3];
+		for (int i = 0; i < 3; i++) {
+		    try {
+			int parsed = Integer.parseInt(sSplit[i]);
+			colorRGB[i] = (parsed > 255 || parsed < 0) ? 1 : parsed;
+		    } catch (NumberFormatException e) {
+		    }
+		}
+
+		colors[s] = Color.fromRGB(colorRGB[0], colorRGB[1], colorRGB[2]);
+	    }
+
+	    fireworkEffect = FireworkEffect.builder()
+		.flicker(useFlicker)
+		.trail(useTrail)
+		.with(fwType)
+		.withColor(colors)
+		.withFade(colors)
+		.build();
+	}
+
 	FireworkPower = c.get("Fireworks.LevelUp.power", 1);
-	c.addComment("Fireworks.LevelUp.ShootTime", "Fire shooting time in ticks.", "Example: 20 tick = 1 second");
+	c.addComment("Fireworks.LevelUp.ShootTime", "Fire shooting time in ticks.", "20 tick = 1 second");
 	ShootTime = c.get("Fireworks.LevelUp.ShootTime", 20);
 
 	c.addComment("Signs", "You can disable this to save SMALL amount of server resources");
@@ -936,6 +982,8 @@ allowBreakPaymentForOreGenerators = c.get("ExploitProtections.General.AllowBreak
 	DisableJoiningJobThroughGui = c.get("JobsGUI.DisableJoiningJobThroughGui", false);
 	c.addComment("JobsGUI.ShowActionNames", "Do you want to show the action names in GUI?");
 	ShowActionNames = c.get("JobsGUI.ShowActionNames", true);
+	c.addComment("JobsGUI.HideItemAttributes", "Do we hide all item attributes in GUI?");
+	hideItemAttributes = c.get("JobsGUI.HideItemAttributes", true);
 	c.addComment("JobsGUI.Rows", "Defines size in rows of GUI");
 	JobsGUIRows = c.get("JobsGUI.Rows", 5);
 	c.addComment("JobsGUI.BackButtonSlot", "Defines back button slot in GUI");
@@ -965,14 +1013,14 @@ allowBreakPaymentForOreGenerators = c.get("ExploitProtections.General.AllowBreak
 	c.addComment("Commands.JobsInfo.open-browse", "Open up the jobs browse action list, when your performed /jobs info command?");
 	jobsInfoOpensBrowse = c.get("Commands.JobsInfo.open-browse", false);
 
-	CMIMaterial tmat = CMIMaterial.get(c.get("JobsGUI.BackButton.Material", "JACK_O_LANTERN").toUpperCase());
+	CMIMaterial tmat = CMIMaterial.get(c.get("JobsGUI.BackButton.Material", "JACK_O_LANTERN"));
 	guiBackButton = (tmat == CMIMaterial.NONE ? CMIMaterial.JACK_O_LANTERN : tmat).newItemStack();
 
-	tmat = CMIMaterial.get(c.get("JobsGUI.NextButton.Material", "ARROW").toUpperCase());
+	tmat = CMIMaterial.get(c.get("JobsGUI.NextButton.Material", "ARROW"));
 	guiNextButton = (tmat == CMIMaterial.NONE ? CMIMaterial.ARROW : tmat).newItemStack();
 
-	tmat = CMIMaterial.get(c.get("JobsGUI.Filler.Material", "GREEN_STAINED_GLASS_PANE").toUpperCase());
-	guiFiller = (tmat == CMIMaterial.NONE ? CMIMaterial.GREEN_STAINED_GLASS_PANE : tmat).newItemStack();
+	tmat = CMIMaterial.get(c.get("JobsGUI.Filler.Material", "GREEN_STAINED_GLASS_PANE"));
+	guiFiller = (tmat == CMIMaterial.NONE ? CMIMaterial.GREEN_STAINED_GLASS_PANE : tmat);
 
 	c.save();
     }
@@ -989,16 +1037,8 @@ allowBreakPaymentForOreGenerators = c.get("ExploitProtections.General.AllowBreak
 	return ResetTimeHour;
     }
 
-    public void setResetTimeHour(int resetTimeHour) {
-	ResetTimeHour = resetTimeHour;
-    }
-
     public int getResetTimeMinute() {
 	return ResetTimeMinute;
-    }
-
-    public void setResetTimeMinute(int resetTimeMinute) {
-	ResetTimeMinute = resetTimeMinute;
     }
 
     public boolean isFurnacesReassign() {
@@ -1043,8 +1083,9 @@ allowBreakPaymentForOreGenerators = c.get("ExploitProtections.General.AllowBreak
 	if (JobsGUIBackButton < 1)
 	    JobsGUIBackButton = 1;
 
-	if (JobsGUIBackButton > JobsGUIRows * 9)
-	    JobsGUIBackButton = JobsGUIRows * 9;
+	int mult = JobsGUIRows * 9;
+	if (JobsGUIBackButton > mult)
+	    JobsGUIBackButton = mult;
 
 	return JobsGUIBackButton - 1;
     }
@@ -1053,8 +1094,9 @@ allowBreakPaymentForOreGenerators = c.get("ExploitProtections.General.AllowBreak
 	if (JobsGUINextButton < 1)
 	    JobsGUINextButton = 1;
 
-	if (JobsGUINextButton > JobsGUIRows * 9)
-	    JobsGUINextButton = JobsGUIRows * 9;
+	int mult = JobsGUIRows * 9;
+	if (JobsGUINextButton > mult)
+	    JobsGUINextButton = mult;
 
 	return JobsGUINextButton - 1;
     }
@@ -1086,4 +1128,7 @@ allowBreakPaymentForOreGenerators = c.get("ExploitProtections.General.AllowBreak
 	return DailyQuestsSkips;
     }
 
+    public FireworkEffect getFireworkEffect() {
+	return fireworkEffect;
+    }
 }

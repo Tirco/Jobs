@@ -45,7 +45,7 @@ public enum CMIEnchantment {
     SHARPNESS("DAMAGE_ALL"),
     SILK_TOUCH,
     SMITE("DAMAGE_UNDEAD", "UNDEAD_DAMAGE"),
-    SOULD_SPEED,
+    SOUL_SPEED,
     SWEEPING("SWEEPING_EDGE"),
     THORNS,
     UNBREAKING("DURABILITY"),
@@ -74,7 +74,7 @@ public enum CMIEnchantment {
 		}
 	    } catch (Exception | Error e) {
 		try {
-		    if (one.getKey().toString().split(":")[1].toLowerCase().replace("_", "").equalsIgnoreCase(temp)) {
+		    if (one.getKey().toString().split(":", 2)[1].toLowerCase().replace("_", "").equalsIgnoreCase(temp)) {
 			enchantment = one;
 			break;
 		    }
@@ -104,7 +104,7 @@ public enum CMIEnchantment {
 			}
 		    } catch (Exception | Error e) {
 			try {
-			    if (one.getKey().toString().split(":")[1].toLowerCase().replace("_", "").equalsIgnoreCase(temp)) {
+			    if (one.getKey().toString().split(":", 2)[1].toLowerCase().replace("_", "").equalsIgnoreCase(temp)) {
 				enchantment = one;
 				break en;
 			    }
@@ -160,7 +160,7 @@ public enum CMIEnchantment {
 	if (map.isEmpty())
 	    fillUpMap();
 
-	name = name.contains(":") ? name.split(":")[0] : name.contains("-") ? name.split("-")[0] : name;
+	name = name.contains(":") ? name.split(":", 2)[0] : name.contains("-") ? name.split("-", 2)[0] : name;
 	name = name.toLowerCase().replace("_", "");
 	return map.get(name);
     }
@@ -168,18 +168,16 @@ public enum CMIEnchantment {
     public static Enchantment getEnchantment(String name) {
 	if (map.isEmpty())
 	    fillUpMap();
-	name = name.contains(":") ? name.split(":")[0] : name.contains("-") ? name.split("-")[0] : name;
+	name = name.contains(":") ? name.split(":", 2)[0] : name.contains("-") ? name.split("-", 2)[0] : name;
 	name = name.toLowerCase().replace("_", "");
 
 	CMIEnchantment ec = map.get(name);
 
 	if (ec == null) {
-	    Enchantment enchant = gmap.get(name);
-	    if (enchant != null)
-		return enchant;
+	    return gmap.get(name);
 	}
 
-	return ec == null ? null : ec.getEnchantment();
+	return ec.getEnchantment();
     }
 
     public static CMIEnchantment get(Enchantment enchantment) {
@@ -208,11 +206,11 @@ public enum CMIEnchantment {
     }
 
     public String getName() {
-	return Util.firstToUpperCase(toString().replace('_', ' '));
+	return Util.firstToUpperCase(toString());
     }
 
     public static String getName(Enchantment enchant) {
-	CMIEnchantment ce = CMIEnchantment.get(enchant);
+	CMIEnchantment ce = get(enchant);
 	if (ce == null)
 	    return "Unknown";
 
